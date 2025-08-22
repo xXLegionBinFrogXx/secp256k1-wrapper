@@ -30,3 +30,5 @@ jobs:
       - name: Build shared lib
         run: cmake --build build --config ${{ env.BUILD_TYPE }} --target secp256k1-wrapper-shared -- -j2
 
+      - name: Build tests
+        run: cmake --build build --config ${{ env.BUILD_TYPE }} --target test_wrapper -- -j2
