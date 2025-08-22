@@ -77,6 +77,15 @@ if(BUILD_STATIC)
 
     target_link_libraries(secp256k1-wrapper-static PRIVATE ${PLATFORM_LIBS})
 
+
+    target_include_directories(secp256k1-wrapper-static
+        PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+        PRIVATE
+            $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
+)
+
     target_compile_features(secp256k1-wrapper-static PUBLIC c_std_99)
     if(MSVC)
         target_compile_options(secp256k1-wrapper-static PRIVATE /W4)
@@ -113,6 +122,14 @@ if(BUILD_SHARED)
     # Link only platform-specific libraries
     target_link_libraries(secp256k1-wrapper-shared 
         PRIVATE ${PLATFORM_LIBS}
+    )
+
+    target_include_directories(secp256k1-wrapper-shared
+        PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+        PRIVATE
+            $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
     )
     
     target_compile_features(secp256k1-wrapper-shared PUBLIC c_std_99)
@@ -155,11 +172,14 @@ if(BUILD_TESTS AND DEFAULT_LIBRARY_TARGET)
     
     # Build test executable
     add_executable(test_wrapper tests/test_wrapper.c)
-    target_include_directories(test_wrapper PRIVATE 
-        include
-    )
-    target_link_libraries(test_wrapper PRIVATE ${DEFAULT_LIBRARY_TARGET} unity ${PLATFORM_LIBS})
     
+    target_include_directories(test_wrapper PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
+    )
+
+      target_link_libraries(test_wrapper PRIVATE ${DEFAULT_LIBRARY_TARGET} unity ${PLATFORM_LIBS})
+  
     target_compile_features(test_wrapper PRIVATE c_std_99)
     if(MSVC)
         target_compile_options(test_wrapper PRIVATE /W4)
