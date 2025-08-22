@@ -76,7 +76,7 @@ static void secure_memzero(void *p, size_t n) {
 
     memset(p, 0, n);
     __asm__ __volatile__ ("" : : "r"(p) : "memory");
-#elif
+#else
     /* Fallback. cannot be optimized away, I hope */
     typedef void *(*memset_fn)(void *, int, size_t);
     volatile memset_fn vmemset = memset;
@@ -252,3 +252,4 @@ int secp256k1_wrapper_fill_random(unsigned char* data, size_t size) {
     #error "Couldn't identify the OS"
 #endif
 }
+
