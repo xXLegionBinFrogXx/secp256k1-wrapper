@@ -1,7 +1,7 @@
 # secp256k1-wrapper
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![CMake](https://img.shields.io/badge/CMake-3.15+-blue.svg)](https://cmake.org/)
+[![CMake](https://img.shields.io/badge/CMake-3.24+-blue.svg)](https://cmake.org/)
 [![C Standard](https://img.shields.io/badge/C-C99-blue.svg)](https://en.wikipedia.org/wiki/C99)
 [![Build](https://github.com/xXLegionBinFrogXx/secp256k1-wrapper/actions/workflows/build.yml/badge.svg)](https://github.com/xXLegionBinFrogXx/secp256k1-wrapper/actions/workflows/build.yml)
 
