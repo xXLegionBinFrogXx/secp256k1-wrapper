@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.24)
+
 project(secp256k1-wrapper VERSION 1.3.0 LANGUAGES C)
 
 # Set default build type
@@ -7,16 +8,12 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Build options
-option(BUILD_TESTS "Build test suite" ON)
-option(BUILD_EXAMPLES "Build example programs" ON)
+option(BUILD_TESTS "Build test suite" OFF)
+option(BUILD_EXAMPLES "Build example programs" OFF)
 option(BUILD_SHARED "Build shared library" ON)
 option(BUILD_STATIC "Build static library" ON)
 
-# Note: C standard and compiler flags are set per-target below
-
-# Fetch secp256k1 dependency
-message(STATUS "Fetching secp256k1 dependency")
-
+include(GNUInstallDirs)
 include(FetchContent)
 
 # Configure secp256k1 options before fetching
@@ -32,6 +29,9 @@ set(SECP256K1_ENABLE_MODULE_ECDH OFF CACHE BOOL "Enable ECDH module")
 set(SECP256K1_ENABLE_MODULE_ELLSWIFT OFF CACHE BOOL "Enable ellswift module")
 set(SECP256K1_ENABLE_MODULE_MUSIG OFF CACHE BOOL "Enable musig module")
 
+# Fetch secp256k1 dependency
+message(STATUS "Fetching secp256k1 dependency")
+
 FetchContent_Declare(secp256k1
   GIT_REPOSITORY https://github.com/bitcoin-core/secp256k1.git
   GIT_TAG        v0.7.0
@@ -39,11 +39,8 @@ FetchContent_Declare(secp256k1
 
 FetchContent_MakeAvailable(secp256k1)
 
-# secp256k1 is now available via FetchContent
-
-# Define wrapper library sources and headers
+# Define wrapper library sources
 set(WRAPPER_SOURCES src/secp256k1_wrapper.c)
-set(WRAPPER_HEADERS include/secp256k1_wrapper.h)
 
 # Platform-specific libraries
 if(WIN32)
@@ -61,16 +58,23 @@ endif()
 
 # Create static library target
 if(BUILD_STATIC)
-    add_library(secp256k1-wrapper-static STATIC ${WRAPPER_SOURCES})
-    target_include_directories(secp256k1-wrapper-static 
-        PUBLIC 
-            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-            $<INSTALL_INTERFACE:include>
+    add_library(secp256k1-wrapper-static STATIC)
+    
+    target_sources(secp256k1-wrapper-static
+        PRIVATE
+        ${WRAPPER_SOURCES}
     )
+
+    target_sources(secp256k1-wrapper-static
+        PUBLIC
+        FILE_SET HEADERS 
+            BASE_DIRS include
+            FILES include/secp256k1_wrapper.h
+    )
+
     # Use secp256k1_objs to embed object files into our static library (v0.7.0+ feature)
     target_link_libraries(secp256k1-wrapper-static PRIVATE secp256k1_objs ${PLATFORM_LIBS})
     
-    # Set C standard and compiler options per target
     target_compile_features(secp256k1-wrapper-static PUBLIC c_std_99)
     if(MSVC)
         target_compile_options(secp256k1-wrapper-static PRIVATE /W4)
@@ -89,16 +93,24 @@ endif()
 
 # Create shared library target  
 if(BUILD_SHARED)
-    add_library(secp256k1-wrapper-shared SHARED ${WRAPPER_SOURCES})
-    target_include_directories(secp256k1-wrapper-shared
-        PUBLIC 
-            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-            $<INSTALL_INTERFACE:include>
+    add_library(secp256k1-wrapper-shared SHARED)
+
+    target_sources(secp256k1-wrapper-shared
+        PRIVATE
+        ${WRAPPER_SOURCES}
     )
+
+    target_sources(secp256k1-wrapper-shared
+        PUBLIC
+        FILE_SET HEADERS 
+            BASE_DIRS include
+            FILES include/secp256k1_wrapper.h
+    )
+
     # Shared library can link to secp256k1 normally
     target_link_libraries(secp256k1-wrapper-shared PRIVATE secp256k1 ${PLATFORM_LIBS})
     
-    # Set C standard and compiler options per target
+
     target_compile_features(secp256k1-wrapper-shared PUBLIC c_std_99)
     if(MSVC)
         target_compile_options(secp256k1-wrapper-shared PRIVATE /W4)
@@ -130,7 +142,7 @@ endif()
 
 # Build tests
 if(BUILD_TESTS AND DEFAULT_LIBRARY_TARGET)
-    # Fetch Unity testing framework only when building tests
+
     FetchContent_Declare(Unity
         GIT_REPOSITORY      https://github.com/ThrowTheSwitch/Unity.git
         GIT_TAG             v2.6.1
@@ -178,25 +190,23 @@ endif()
 
 # Installation rules
 if(BUILD_STATIC OR BUILD_SHARED)
-    install(FILES ${WRAPPER_HEADERS} DESTINATION include)
-    
+    # Collect targets to install
+    set(INSTALL_TARGETS)
     if(BUILD_STATIC)
-        install(TARGETS secp256k1-wrapper-static
-            ARCHIVE DESTINATION lib
-        )
+        list(APPEND INSTALL_TARGETS secp256k1-wrapper-static)
     endif()
-    
     if(BUILD_SHARED)
-        install(TARGETS secp256k1-wrapper-shared
-            LIBRARY DESTINATION lib
-            RUNTIME DESTINATION bin
-        )
+        list(APPEND INSTALL_TARGETS secp256k1-wrapper-shared)
     endif()
-    
-    if(BUILD_EXAMPLES)
-        install(TARGETS demo DESTINATION bin)
-    endif()
-    
+
+    # Install libraries + public headers (from FILE_SET) in standard dirs
+    install(TARGETS ${INSTALL_TARGETS}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
+
 endif()
 
 # Summary

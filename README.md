@@ -40,13 +40,19 @@ cmake --build .
 ### Run Tests
 
 ```bash
-cmake --build . --target test_wrapper
-ctest
+mkdir build && cd build
+cmake .. -DBUILD_TESTS=ON
+cmake --build . --target test_wrapper   
+ctest                                  
 ```
 
 ### Run Example
 
 ```bash
+mkdir build && cd build
+cmake .. -DBUILD_EXAMPLES=ON
+cmake --build . --target demo
+
 ./demo                 # 2 key pairs, compressed pubkeys (default)
 ./demo 5               # 5 key pairs, compressed
 ./demo 3 u             # 3 key pairs, uncompressed
