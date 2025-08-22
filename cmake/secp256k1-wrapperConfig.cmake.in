@@ -1,0 +1,12 @@
+@PACKAGE_INIT@
+include(CMakeFindDependencyMacro)
+
+include("${CMAKE_CURRENT_LIST_DIR}/secp256k1-wrapperTargets.cmake")
+
+# Friendly aliases for consumers:
+if(NOT TARGET secp256k1-wrapper::shared AND TARGET secp256k1-wrapper::secp256k1-wrapper-shared)
+  add_library(secp256k1-wrapper::shared ALIAS secp256k1-wrapper::secp256k1-wrapper-shared)
+endif()
+if(NOT TARGET secp256k1-wrapper::static AND TARGET secp256k1-wrapper::secp256k1-wrapper-static)
+  add_library(secp256k1-wrapper::static ALIAS secp256k1-wrapper::secp256k1-wrapper-static)
+endif()

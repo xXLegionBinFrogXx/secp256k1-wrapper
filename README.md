@@ -96,6 +96,26 @@ cmake .. -DCMAKE_BUILD_TYPE=Debug
 * **`libsecp256k1-wrapper.dylib`** - Dynamic library (macOS)
 * **`secp256k1-wrapper.dll`** - Dynamic library (Windows)
 
+## Library Build Layout
+
+This project produces two flavors of the wrapper:
+
+1. **Shared wrapper (dynamic library)**
+
+   * **Target**: `secp256k1-wrapper-shared` → installed as `libsecp256k1-wrapper.so` / `.dylib` / `.dll`.
+   * **Upstream secp256k1** is linked statically into the wrapper.
+     * You only need to link against `secp256k1-wrapper::secp256k1-wrapper-shared`.
+     * At runtime, there is no dependency on an external `libsecp256k1.so`.
+   * **Typical use case**: Provide a single `.so`/`.dll` that applications can link against, while we control the exact `secp256k1` version bundled inside.
+
+2. **Static wrapper (static library)**
+
+   * **Target**: `secp256k1-wrapper-static` → installed as `libsecp256k1-wrapper.a`.
+   * **Upstream secp256k1** object files are embedded directly into this static archive.
+     * You only need to link against `secp256k1-wrapper::secp256k1-wrapper-static`.
+     * No external `secp256k1` library is required.
+   * **Typical use case**: Fully static builds (CLI tools, embedded, mobile).
+
 ## Platform Support
 
 | Platform    | Random Source           | Notes                         |
@@ -108,7 +128,7 @@ cmake .. -DCMAKE_BUILD_TYPE=Debug
 
 ## Dependencies
 
-* **CMake 3.15+** - Build system
+* **CMake 3.24+** - Build system
 * **C99 compiler** - GCC, Clang, or MSVC
 * **libsecp256k1 v0.7.0+** - Automatically fetched via CMake FetchContent
 * **Unity v2.6.1** - Test framework (auto-fetched when BUILD\_TESTS=ON)

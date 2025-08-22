@@ -15,6 +15,8 @@ option(BUILD_STATIC "Build static library" ON)
 
 include(GNUInstallDirs)
 include(FetchContent)
+include(CMakePackageConfigHelpers)
+
 
 # Configure secp256k1 options before fetching
 set(SECP256K1_BUILD_BENCHMARK OFF CACHE BOOL "Build benchmark")
@@ -63,6 +65,7 @@ if(BUILD_STATIC)
     target_sources(secp256k1-wrapper-static
         PRIVATE
         ${WRAPPER_SOURCES}
+        $<TARGET_PROPERTY:secp256k1_objs,INTERFACE_SOURCES>
     )
 
     target_sources(secp256k1-wrapper-static
@@ -72,9 +75,8 @@ if(BUILD_STATIC)
             FILES include/secp256k1_wrapper.h
     )
 
-    # Use secp256k1_objs to embed object files into our static library (v0.7.0+ feature)
-    target_link_libraries(secp256k1-wrapper-static PRIVATE secp256k1_objs ${PLATFORM_LIBS})
-    
+    target_link_libraries(secp256k1-wrapper-static PRIVATE ${PLATFORM_LIBS})
+
     target_compile_features(secp256k1-wrapper-static PUBLIC c_std_99)
     if(MSVC)
         target_compile_options(secp256k1-wrapper-static PRIVATE /W4)
@@ -98,6 +100,7 @@ if(BUILD_SHARED)
     target_sources(secp256k1-wrapper-shared
         PRIVATE
         ${WRAPPER_SOURCES}
+        $<TARGET_PROPERTY:secp256k1_objs,INTERFACE_SOURCES> # Embed secp256k1 sources
     )
 
     target_sources(secp256k1-wrapper-shared
@@ -107,10 +110,11 @@ if(BUILD_SHARED)
             FILES include/secp256k1_wrapper.h
     )
 
-    # Shared library can link to secp256k1 normally
-    target_link_libraries(secp256k1-wrapper-shared PRIVATE secp256k1 ${PLATFORM_LIBS})
+    # Link only platform-specific libraries
+    target_link_libraries(secp256k1-wrapper-shared 
+        PRIVATE ${PLATFORM_LIBS}
+    )
     
-
     target_compile_features(secp256k1-wrapper-shared PUBLIC c_std_99)
     if(MSVC)
         target_compile_options(secp256k1-wrapper-shared PRIVATE /W4)
@@ -124,7 +128,6 @@ if(BUILD_SHARED)
         SOVERSION ${PROJECT_VERSION_MAJOR}
     )
     
-    # Create alias for consistent naming
     add_library(secp256k1-wrapper::shared ALIAS secp256k1-wrapper-shared)
 endif()
 
@@ -201,12 +204,35 @@ if(BUILD_STATIC OR BUILD_SHARED)
 
     # Install libraries + public headers (from FILE_SET) in standard dirs
     install(TARGETS ${INSTALL_TARGETS}
+        EXPORT secp256k1-wrapperTargets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
         FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     )
 
+    install(EXPORT secp256k1-wrapperTargets
+        NAMESPACE secp256k1-wrapper::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/secp256k1-wrapper
+    )
+
+    write_basic_package_version_file(
+        "${CMAKE_CURRENT_BINARY_DIR}/secp256k1-wrapperConfigVersion.cmake"
+        VERSION ${PROJECT_VERSION}
+        COMPATIBILITY SameMajorVersion
+    )
+
+    configure_package_config_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/secp256k1-wrapperConfig.cmake.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/secp256k1-wrapperConfig.cmake"
+        INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/secp256k1-wrapper
+    )
+
+    install(FILES
+        "${CMAKE_CURRENT_BINARY_DIR}/secp256k1-wrapperConfig.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/secp256k1-wrapperConfigVersion.cmake"
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/secp256k1-wrapper
+    )
 endif()
 
 # Summary
