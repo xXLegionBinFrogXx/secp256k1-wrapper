@@ -41,12 +41,3 @@ jobs:
       - name: Run tests
         working-directory: ${{ github.workspace }}/build
         run: ctest -C ${{ env.BUILD_TYPE }} --output-on-failure
-
-      # Optional: upload the .a archive so you can download it from the workflow run
-      - name: Upload static lib artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: secp256k1-wrapper-static-${{ env.BUILD_TYPE }}
-          path: |
-            ${{ github.workspace }}/build/**/libsecp256k1-wrapper.a
-          if-no-files-found: warn
