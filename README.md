@@ -204,21 +204,6 @@ const char* get_error_message(int code) {
 }
 ```
 
-### Go Error Handling
-
-```go
-func getErrorMessage(code int) error {
-    switch code {
-    case 0: return nil
-    case -1: return errors.New("invalid input parameters")
-    case -2: return errors.New("context creation/randomization failed")
-    case -3: return errors.New("random number generation failed")
-    case -5: return errors.New("public key creation/serialization failed")
-    default: return fmt.Errorf("unknown error (code: %d)", code)
-    }
-}
-```
-
 ### C++ Error Handling
 
 ```cpp
@@ -238,6 +223,21 @@ private:
         }
     }
 };
+```
+
+### Go Error Handling
+
+```go
+func getErrorMessage(code int) error {
+    switch code {
+    case 0: return nil
+    case -1: return errors.New("invalid input parameters")
+    case -2: return errors.New("context creation/randomization failed")
+    case -3: return errors.New("random number generation failed")
+    case -5: return errors.New("public key creation/serialization failed")
+    default: return fmt.Errorf("unknown error (code: %d)", code)
+    }
+}
 ```
 
 ---
