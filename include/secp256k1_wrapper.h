@@ -16,7 +16,7 @@
 #include <stdlib.h>
 
 #define SECP256K1_WRAPPER_VERSION_MAJOR 1
-#define SECP256K1_WRAPPER_VERSION_MINOR 3
+#define SECP256K1_WRAPPER_VERSION_MINOR 4
 #define SECP256K1_WRAPPER_VERSION_PATCH 0
 
 #define STR_HELPER(x) #x
@@ -104,8 +104,9 @@ int secp256k1_wrapper_generate_keys(unsigned char* privkey_out, unsigned char* p
  * @return int Returns 0 on success, or a negative value on error:
  *             - -1: Invalid input (null buffers or invalid compressed value).
  *             - -2: Context creation or randomization failed.
+ *             - -3: Random number generation failed.
  *             - -5: Public key creation or serialization failed.
- * 
+ *
  * @note On failure, the contents of pubkey_out are undefined and should not be used.
  */
 int secp256k1_wrapper_derive_pubkey(const unsigned char* privkey, unsigned char* pubkey_out,int compressed);

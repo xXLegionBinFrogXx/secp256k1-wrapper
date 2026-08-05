@@ -100,7 +100,7 @@ int secp256k1_wrapper_generate_keys(unsigned char* privkey_out, unsigned char* p
     int flags = compressed ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED;
 
 
-    secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
+    secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
     if (!ctx) {
         return -2; // Context creation failed
     }
@@ -168,10 +168,25 @@ int secp256k1_wrapper_derive_pubkey(const unsigned char* privkey, unsigned char*
     size_t pubkey_len = compressed ? PUBKEY_COMPRESSION_SIZE : PUBKEY_UNCOMPRESSION_SIZE;
     int flags = compressed ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED;
 
-    secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
-     if (!ctx) {
+    secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+    if (!ctx) {
         return -2; // Context creation failed
     }
+
+    //TODO: Minor - extract ctx random to separate function	
+    unsigned char randomize[PRIVKEY_SIZE];
+    if (!secp256k1_wrapper_fill_random(randomize, sizeof(randomize))) {
+        secp256k1_context_destroy(ctx);
+        return -3; // Random number generation failed
+    }
+
+    if (secp256k1_context_randomize(ctx, randomize) == 0) {
+        secure_memzero(randomize, sizeof(randomize));
+        secp256k1_context_destroy(ctx);
+        return -2; // Context randomization failed
+    }
+
+    secure_memzero(randomize, sizeof(randomize));
 
     if (!secp256k1_ec_seckey_verify(ctx, privkey)) {
         secp256k1_context_destroy(ctx);

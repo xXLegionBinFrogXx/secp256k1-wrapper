@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(secp256k1-wrapper VERSION 1.3.0 LANGUAGES C)
+project(secp256k1-wrapper VERSION 1.4.0 LANGUAGES C)
 
 # Set default build type
 if(NOT CMAKE_BUILD_TYPE)
@@ -30,13 +30,14 @@ set(SECP256K1_ENABLE_MODULE_SCHNORRSIG OFF CACHE BOOL "Enable schnorrsig module"
 set(SECP256K1_ENABLE_MODULE_ECDH OFF CACHE BOOL "Enable ECDH module")
 set(SECP256K1_ENABLE_MODULE_ELLSWIFT OFF CACHE BOOL "Enable ellswift module")
 set(SECP256K1_ENABLE_MODULE_MUSIG OFF CACHE BOOL "Enable musig module")
+set(SECP256K1_ENABLE_MODULE_SILENTPAYMENTS OFF CACHE BOOL "Enable Silent Payments module")
 
 # Fetch secp256k1 dependency
 message(STATUS "Fetching secp256k1 dependency")
 
 FetchContent_Declare(secp256k1
   GIT_REPOSITORY https://github.com/bitcoin-core/secp256k1.git
-  GIT_TAG        v0.7.0
+  GIT_TAG        v0.8.0
 )
 
 FetchContent_MakeAvailable(secp256k1)
@@ -77,14 +78,13 @@ if(BUILD_STATIC)
 
     target_link_libraries(secp256k1-wrapper-static PRIVATE ${PLATFORM_LIBS})
 
-
     target_include_directories(secp256k1-wrapper-static
         PUBLIC
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
         PRIVATE
             $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
-)
+    )
 
     target_compile_features(secp256k1-wrapper-static PUBLIC c_std_99)
     if(MSVC)
@@ -178,8 +178,8 @@ if(BUILD_TESTS AND DEFAULT_LIBRARY_TARGET)
         $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
     )
 
-      target_link_libraries(test_wrapper PRIVATE ${DEFAULT_LIBRARY_TARGET} unity ${PLATFORM_LIBS})
-  
+    target_link_libraries(test_wrapper PRIVATE ${DEFAULT_LIBRARY_TARGET} unity ${PLATFORM_LIBS})
+
     target_compile_features(test_wrapper PRIVATE c_std_99)
     if(MSVC)
         target_compile_options(test_wrapper PRIVATE /W4)

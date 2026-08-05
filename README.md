@@ -1,9 +1,8 @@
 # secp256k1-wrapper
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![CMake](https://img.shields.io/badge/CMake-3.24+-blue.svg)](https://cmake.org/)
+[![CMake](https://img.shields.io/badge/CMake-3.15+-blue.svg)](https://cmake.org/)
 [![C Standard](https://img.shields.io/badge/C-C99-blue.svg)](https://en.wikipedia.org/wiki/C99)
-[![Build](https://github.com/xXLegionBinFrogXx/secp256k1-wrapper/actions/workflows/build.yml/badge.svg)](https://github.com/xXLegionBinFrogXx/secp256k1-wrapper/actions/workflows/build.yml)
 
 A modern, lightweight C wrapper library for [libsecp256k1](https://github.com/bitcoin-core/secp256k1) that simplifies elliptic curve cryptography operations for secp256k1 keys.
 
@@ -11,13 +10,13 @@ A modern, lightweight C wrapper library for [libsecp256k1](https://github.com/bi
 
 | Feature                | Description                                                            |
 | ---------------------- | ---------------------------------------------------------------------- |
-| **Simple API**     | Easy-to-use functions for key generation and derivation                |
-| **Cross-Platform**  | Supports Windows, macOS, Linux, and BSD                                |
-| **Secure**          | Platform-specific secure random number generation                      |
-| **Thread-Safe**     | No global state, context management per operation                      |
-| **Modern Build**    | CMake-based build system using latest secp256k1 v0.7.0 features        |
-| **Well Tested**      | Comprehensive test suite with Unity v2.6.1 framework                   |
-| **No Manual Setup** | Dependencies auto-fetched via CMake, no git submodules or manual setup |
+| 🛠️ **Simple API**     | Easy-to-use functions for key generation and derivation                |
+| 🌐 **Cross-Platform**  | Supports Windows, macOS, Linux, and BSD                                |
+| 🔒 **Secure**          | Platform-specific secure random number generation                      |
+| 🧵 **Thread-Safe**     | No global state, context management per operation                      |
+| 🔧 **Modern Build**    | CMake-based build system using latest secp256k1 v0.8.0 features        |
+| ✅ **Well Tested**      | Comprehensive test suite with Unity v2.6.1 framework                   |
+| 📦 **No Manual Setup** | Dependencies auto-fetched via CMake, no git submodules or manual setup |
 
 ---
 
@@ -131,7 +130,7 @@ This project produces two flavors of the wrapper:
 
 * **CMake 3.24+** - Build system
 * **C99 compiler** - GCC, Clang, or MSVC
-* **libsecp256k1 v0.7.0+** - Automatically fetched via CMake FetchContent
+* **libsecp256k1 v0.8.0+** - Automatically fetched via CMake FetchContent
 * **Unity v2.6.1** - Test framework (auto-fetched when BUILD\_TESTS=ON)
 
 All dependencies are automatically downloaded and built — no git submodules or manual dependency management required.
@@ -148,9 +147,9 @@ All dependencies are automatically downloaded and built — no git submodules or
 
 int main() {
     unsigned char privkey[32];
-    unsigned char pubkey[33];  
+    unsigned char pubkey[33];  // 33 bytes compressed
 
-    int result=secp256k1_wrapper_generate_keys(privkey, pubkey, 1);
+    int result = secp256k1_wrapper_generate_keys(privkey, pubkey, 1);
     if (result != 0) {
         printf("Key generation failed: %d\n", result);
         return 1;
@@ -170,10 +169,10 @@ int main() {
     unsigned char pubkey[33];
     int result = secp256k1_wrapper_generate_keys(privkey, pubkey, 1);
     if (result != 0) {
-        std::cerr<<"Key generation failed\n";
+        std::cerr << "Key generation failed\n";
         return 1;
     }
-    std::cout<<"Keys generated successfully\n";
+    std::cout << "✅ Keys generated successfully\n";
 }
 ```
 
@@ -192,7 +191,7 @@ import "fmt"
 
 func main() {
     var privkey [32]C.uchar
-    var pubkey  [33]C.uchar
+    var pubkey [33]C.uchar
     result := C.secp256k1_wrapper_generate_keys(&privkey[0], &pubkey[0], 1)
     if result != 0 {
         fmt.Println("Key generation failed")
@@ -214,6 +213,60 @@ func main() {
 | `-3` | Random number generation failed          |
 | `-5` | Public key creation/serialization failed |
 
+## Error Handling Examples
+
+### C Error Handling
+
+```c
+const char* get_error_message(int code) {
+    switch (code) {
+        case 0: return "Success";
+        case -1: return "Invalid input parameters";
+        case -2: return "Context creation/randomization failed";
+        case -3: return "Random number generation failed";
+        case -5: return "Public key creation/serialization failed";
+        default: return "Unknown error";
+    }
+}
+```
+
+### C++ Error Handling
+
+```cpp
+class Secp256k1Error : public std::runtime_error {
+public:
+    explicit Secp256k1Error(int code) 
+        : std::runtime_error(getErrorMessage(code)), error_code_(code) {}
+private:
+    int error_code_;
+    static std::string getErrorMessage(int code) {
+        switch (code) {
+            case -1: return "Invalid input parameters";
+            case -2: return "Context creation failed";
+            case -3: return "Random generation failed";
+            case -5: return "Public key creation failed";
+            default: return "Unknown error";
+        }
+    }
+};
+```
+
+### Go Error Handling
+
+```go
+func getErrorMessage(code int) error {
+    switch code {
+    case 0: return nil
+    case -1: return errors.New("invalid input parameters")
+    case -2: return errors.New("context creation/randomization failed")
+    case -3: return errors.New("random number generation failed")
+    case -5: return errors.New("public key creation/serialization failed")
+    default: return fmt.Errorf("unknown error (code: %d)", code)
+    }
+}
+```
+
+---
 
 ## Security Features
 
@@ -239,10 +292,10 @@ func main() {
 ### Learn More
 
 * 📚 [Elliptic Curve Cryptography Guide](https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm)
-* 📚 [Practical Cryptography for Developers](https://cryptobook.nakov.com/)
-* 📚 [Introduction to secp256k1](https://en.bitcoin.it/wiki/Secp256k1)
-* 📚 [libsecp256k1 GitHub](https://github.com/bitcoin-core/secp256k1)
-* 📚 [Mastering Bitcoin](https://github.com/bitcoinbook/bitcoinbook)
+* 🔐 [Practical Cryptography for Developers](https://cryptobook.nakov.com/)
+* 📖 [Introduction to secp256k1](https://en.bitcoin.it/wiki/Secp256k1)
+* 🛠️ [libsecp256k1 GitHub](https://github.com/bitcoin-core/secp256k1)
+* 💻 [Mastering Bitcoin](https://github.com/bitcoinbook/bitcoinbook)
 
 ---
 
