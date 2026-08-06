@@ -18,6 +18,7 @@ include(FetchContent)
 include(CMakePackageConfigHelpers)
 
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # Configure secp256k1 options before fetching
 set(SECP256K1_BUILD_BENCHMARK OFF CACHE BOOL "Build benchmark")
 set(SECP256K1_BUILD_TESTS OFF CACHE BOOL "Build tests")
