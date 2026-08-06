@@ -3,6 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CMake](https://img.shields.io/badge/CMake-3.15+-blue.svg)](https://cmake.org/)
 [![C Standard](https://img.shields.io/badge/C-C99-blue.svg)](https://en.wikipedia.org/wiki/C99)
+[![Build](https://github.com/xXLegionBinFrogXx/secp256k1-wrapper/actions/workflows/build.yml/badge.svg)](https://github.com/xXLegionBinFrogXx/secp256k1-wrapper/actions/workflows/build.yml)
 
 A modern, lightweight C wrapper library for [libsecp256k1](https://github.com/bitcoin-core/secp256k1) that simplifies elliptic curve cryptography operations for secp256k1 keys.
 
@@ -10,13 +11,13 @@ A modern, lightweight C wrapper library for [libsecp256k1](https://github.com/bi
 
 | Feature                | Description                                                            |
 | ---------------------- | ---------------------------------------------------------------------- |
-| 🛠️ **Simple API**     | Easy-to-use functions for key generation and derivation                |
-| 🌐 **Cross-Platform**  | Supports Windows, macOS, Linux, and BSD                                |
-| 🔒 **Secure**          | Platform-specific secure random number generation                      |
-| 🧵 **Thread-Safe**     | No global state, context management per operation                      |
-| 🔧 **Modern Build**    | CMake-based build system using latest secp256k1 v0.8.0 features        |
-| ✅ **Well Tested**      | Comprehensive test suite with Unity v2.6.1 framework                   |
-| 📦 **No Manual Setup** | Dependencies auto-fetched via CMake, no git submodules or manual setup |
+| **Simple API**      | Easy-to-use functions for key generation and derivation                |
+| **Cross-Platform**  | Supports Windows, macOS, Linux, and BSD                                |
+| **Secure**          | Platform-specific secure random number generation                      |
+| **Thread-Safe**     | No global state, context management per operation                      |
+| **Modern Build**    | CMake-based build system using latest secp256k1 v0.8.0 features        |
+| **Well Tested**      | Comprehensive test suite with Unity v2.6.1 framework                   |
+| **No Manual Setup** | Dependencies auto-fetched via CMake, no git submodules or manual setup |
 
 ---
 
