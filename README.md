@@ -141,6 +141,14 @@ int main() {
         printf("Key generation failed: %d\n", result);
         return 1;
     }
+
+    // Validate an externally-supplied private key without deriving a pubkey
+    if (secp256k1_wrapper_verify_privkey(privkey) != 0) {
+        printf("Private key is invalid\n");
+    }
+
+    // Securely wipe key material when done with it
+    secp256k1_wrapper_memzero(privkey, sizeof(privkey));
     return 0;
 }
 ```
@@ -274,8 +282,8 @@ func getErrorMessage(code int) error {
 ## Security Features
 
 * **Context randomization** — Protection against side-channel attacks
-* **Secure memory clearing** — Sensitive data zeroed properly
-* **Private key validation** — Keys always verified
+* **Secure memory clearing** — Sensitive data zeroed properly; also exposed to callers as `secp256k1_wrapper_memzero()`
+* **Private key validation** — Keys always verified; also exposed standalone as `secp256k1_wrapper_verify_privkey()`
 * **No global state** — Thread-safe design
 
 ---

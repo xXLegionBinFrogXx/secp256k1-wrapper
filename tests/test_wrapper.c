@@ -292,6 +292,87 @@ void test_derive_pubkey_short_buffer_no_write(void) {
     secure_memzero(privkey, sizeof(privkey));
 }
 
+/* ========== verify_privkey Tests ========== */
+
+void test_verify_privkey_valid_generated_key(void) {
+    unsigned char privkey[SECP256K1_WRAPPER_PRIVKEY_SIZE];
+    unsigned char pubkey[SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE];
+
+    int gen_result = secp256k1_wrapper_generate_keys(privkey, pubkey, sizeof(pubkey), 1);
+    TEST_ASSERT_EQUAL_INT(0, gen_result);
+
+    TEST_ASSERT_EQUAL_INT(0, secp256k1_wrapper_verify_privkey(privkey));
+
+    secure_memzero(privkey, sizeof(privkey));
+}
+
+void test_verify_privkey_all_zeros(void) {
+    unsigned char privkey[SECP256K1_WRAPPER_PRIVKEY_SIZE];
+    memset(privkey, 0x00, sizeof(privkey));
+    TEST_ASSERT_EQUAL_INT(-7, secp256k1_wrapper_verify_privkey(privkey));
+}
+
+void test_verify_privkey_all_ff(void) {
+    unsigned char privkey[SECP256K1_WRAPPER_PRIVKEY_SIZE];
+    memset(privkey, 0xFF, sizeof(privkey));
+    TEST_ASSERT_EQUAL_INT(-7, secp256k1_wrapper_verify_privkey(privkey));
+}
+
+void test_verify_privkey_null(void) {
+    TEST_ASSERT_EQUAL_INT(-1, secp256k1_wrapper_verify_privkey(NULL));
+}
+
+void test_verify_privkey_boundary_n_minus_1(void) {
+    /* n - 1: the largest valid private key. */
+    unsigned char privkey[SECP256K1_WRAPPER_PRIVKEY_SIZE] = {
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE,
+        0xBA, 0xAE, 0xDC, 0xE6, 0xAF, 0x48, 0xA0, 0x3B,
+        0xBF, 0xD2, 0x5E, 0x8C, 0xD0, 0x36, 0x41, 0x40
+    };
+    TEST_ASSERT_EQUAL_INT(0, secp256k1_wrapper_verify_privkey(privkey));
+}
+
+void test_verify_privkey_boundary_n(void) {
+    /* n: the curve order itself - one past the largest valid key. */
+    unsigned char privkey[SECP256K1_WRAPPER_PRIVKEY_SIZE] = {
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE,
+        0xBA, 0xAE, 0xDC, 0xE6, 0xAF, 0x48, 0xA0, 0x3B,
+        0xBF, 0xD2, 0x5E, 0x8C, 0xD0, 0x36, 0x41, 0x41
+    };
+    TEST_ASSERT_EQUAL_INT(-7, secp256k1_wrapper_verify_privkey(privkey));
+}
+
+/* ========== memzero Tests ========== */
+
+void test_memzero_zeroes_buffer(void) {
+    unsigned char buf[64];
+    memset(buf, 0xAA, sizeof(buf));
+
+    secp256k1_wrapper_memzero(buf, sizeof(buf));
+
+    TEST_ASSERT_EQUAL_INT(1, is_all_zeros(buf, sizeof(buf)));
+}
+
+void test_memzero_zero_length_is_noop(void) {
+    unsigned char buf[16];
+    memset(buf, 0xAA, sizeof(buf));
+
+    secp256k1_wrapper_memzero(buf, 0);
+
+    for (size_t i = 0; i < sizeof(buf); i++) {
+        TEST_ASSERT_EQUAL_HEX8(0xAA, buf[i]);
+    }
+}
+
+void test_memzero_null_pointer_does_not_crash(void) {
+    /* Must not crash regardless of the length argument. */
+    secp256k1_wrapper_memzero(NULL, 0);
+    secp256k1_wrapper_memzero(NULL, 16);
+    TEST_PASS();
+}
+
 /* ========== Stress Tests ========== */
 
 void test_stress_compressed_generation(void) {
@@ -425,6 +506,19 @@ int main(void) {
     RUN_TEST(test_derive_pubkey_invalid_privkey);
     RUN_TEST(test_derive_pubkey_short_buffer);
     RUN_TEST(test_derive_pubkey_short_buffer_no_write);
+
+    // verify_privkey tests
+    RUN_TEST(test_verify_privkey_valid_generated_key);
+    RUN_TEST(test_verify_privkey_all_zeros);
+    RUN_TEST(test_verify_privkey_all_ff);
+    RUN_TEST(test_verify_privkey_null);
+    RUN_TEST(test_verify_privkey_boundary_n_minus_1);
+    RUN_TEST(test_verify_privkey_boundary_n);
+
+    // memzero tests
+    RUN_TEST(test_memzero_zeroes_buffer);
+    RUN_TEST(test_memzero_zero_length_is_noop);
+    RUN_TEST(test_memzero_null_pointer_does_not_crash);
 
     // Stress tests
     RUN_TEST(test_stress_compressed_generation);

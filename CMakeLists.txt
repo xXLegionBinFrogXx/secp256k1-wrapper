@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(secp256k1-wrapper VERSION 2.0.0 LANGUAGES C)
+project(secp256k1-wrapper VERSION 2.1.0 LANGUAGES C)
 
 # Set default build type
 if(NOT CMAKE_BUILD_TYPE)
@@ -20,6 +20,7 @@ endif()
 include(GNUInstallDirs)
 include(FetchContent)
 include(CMakePackageConfigHelpers)
+include(CheckSymbolExists)
 
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -66,6 +67,10 @@ else()
     set(PLATFORM_LIBS)
 endif()
 
+# explicit_bzero is a libc-guaranteed secure-wipe primitive (not reliant on
+# compiler-barrier semantics); prefer it when available.
+check_symbol_exists(explicit_bzero "string.h;strings.h" HAVE_EXPLICIT_BZERO)
+
 # Create wrapper library target (type follows BUILD_SHARED_LIBS)
 add_library(secp256k1-wrapper-lib)
 
@@ -92,8 +97,11 @@ target_include_directories(secp256k1-wrapper-lib
         $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
-target_compile_features(secp256k1-wrapper-lib PUBLIC c_std_99)
+target_compile_features(secp256k1-wrapper-lib PRIVATE c_std_99)
 target_compile_options(secp256k1-wrapper-lib PRIVATE -Wall -Wextra -Wpedantic)
+if(HAVE_EXPLICIT_BZERO)
+    target_compile_definitions(secp256k1-wrapper-lib PRIVATE HAVE_EXPLICIT_BZERO)
+endif()
 
 set_target_properties(secp256k1-wrapper-lib PROPERTIES
     OUTPUT_NAME secp256k1-wrapper

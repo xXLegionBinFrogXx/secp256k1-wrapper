@@ -16,7 +16,7 @@
 #include <stddef.h>
 
 #define SECP256K1_WRAPPER_VERSION_MAJOR 2
-#define SECP256K1_WRAPPER_VERSION_MINOR 0
+#define SECP256K1_WRAPPER_VERSION_MINOR 1
 #define SECP256K1_WRAPPER_VERSION_PATCH 0
 
 #define SECP256K1_WRAPPER_STR_HELPER(x) #x
@@ -141,6 +141,33 @@ int secp256k1_wrapper_derive_pubkey(const unsigned char* privkey, unsigned char*
 
 
 /**
+ * @brief Verifies that a 32-byte buffer holds a valid secp256k1 private key.
+ *
+ * A private key is valid if it is non-zero and strictly less than the curve
+ * order n. This is a pure computation on public constants: it creates no
+ * context, allocates no memory, and is safe to call concurrently from
+ * multiple threads.
+ *
+ * @param[in] privkey A 32-byte private key to check.
+ *
+ * @return int Returns 0 if the key is valid, or a negative value on error:
+ *             - -1: privkey is NULL.
+ *             - -7: Private key verification failed (zero, or >= curve order n).
+ *
+ * @note Callers that only check `result != 0` (or `result < 0`) for failure
+ *       are unaffected by the specific code returned.
+ *
+ * @warning This function runs libsecp256k1's self-test on every call as a
+ *          build-sanity canary (e.g. to catch a library built for the wrong
+ *          endianness). If the self-test fails, libsecp256k1's default error
+ *          callback is invoked, which aborts the process. This does not
+ *          happen on a correctly built library; it exists to fail fast on a
+ *          broken one rather than silently returning invalid results.
+ */
+int secp256k1_wrapper_verify_privkey(const unsigned char* privkey);
+
+
+/**
  * @brief Fills a buffer with random bytes.
  *
  * This function generates random bytes and fills the provided buffer with them.
@@ -163,6 +190,23 @@ int secp256k1_wrapper_derive_pubkey(const unsigned char* privkey, unsigned char*
  * 
  */
 int secp256k1_wrapper_fill_random(unsigned char* data, size_t size);
+
+
+/**
+ * @brief Securely zeroes a buffer, guaranteed not to be optimized away.
+ *
+ * Uses the best available platform mechanism to ensure the write is not
+ * elided by the compiler as a dead store:
+ * - On Windows, SecureZeroMemory.
+ * - Where available, the libc explicit_bzero function.
+ * - Where C11 Annex K is implemented, memset_s.
+ * - Otherwise, memset followed by a compiler barrier (GCC/Clang), or a
+ *   volatile function pointer indirection as a last resort.
+ *
+ * @param[out] p   Pointer to the buffer to zero. If NULL, this is a no-op.
+ * @param[in]  len Number of bytes to zero. If 0, this is a no-op.
+ */
+void secp256k1_wrapper_memzero(void* p, size_t len);
 
 #ifdef __cplusplus
 }  /* extern "C" */

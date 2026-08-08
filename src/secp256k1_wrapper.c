@@ -15,6 +15,9 @@
 #include "secp256k1_wrapper.h"
 #include "secp256k1.h"
 #include <string.h>
+#if defined(HAVE_EXPLICIT_BZERO)
+#include <strings.h>
+#endif
 
 #if defined(__cplusplus)
 #error Trying to compile a C project with a C++ compiler.
@@ -56,16 +59,21 @@
 
 
 /* Secure memory zeroing that won't be optimized away */
-static void secure_memzero(void *p, size_t n) {
+void secp256k1_wrapper_memzero(void *p, size_t n) {
+    if (p == NULL || n == 0) {
+        return;
+    }
 #if defined(_WIN32)
     SecureZeroMemory(p, n);
+#elif defined(HAVE_EXPLICIT_BZERO)
+    explicit_bzero(p, n);   // libc-guaranteed, not reliant on compiler-barrier semantics
 #elif defined(__STDC_LIB_EXT1__)
     (void)memset_s(p, n, 0, n);   // In case someone actually implemented section K
 #elif defined(__GNUC__) || defined(__clang__)
 
     /* Let the compiler emit an efficient memset, then block DSE with a
-       compiler barrier that "uses" ptr and clobbers memory. 
-       This method is used in Linux kernel : `memzero_explicit()` see the `barrier_data`  
+       compiler barrier that "uses" ptr and clobbers memory.
+       This method is used in Linux kernel : `memzero_explicit()` see the `barrier_data`
        ```
        static inline void memzero_explicit(void *s, size_t count){
 	        memset(s, 0, count);
@@ -109,7 +117,7 @@ int secp256k1_wrapper_generate_keys(unsigned char* privkey_out, unsigned char* p
 
     unsigned char randomize[SECP256K1_WRAPPER_PRIVKEY_SIZE];
     if (!secp256k1_wrapper_fill_random(randomize, sizeof(randomize))) {
-        secure_memzero(randomize, sizeof(randomize));
+        secp256k1_wrapper_memzero(randomize, sizeof(randomize));
         secp256k1_context_destroy(ctx);  // Clean up ctx before returning
         return -3; // Random number generation failed
     }
@@ -118,19 +126,19 @@ int secp256k1_wrapper_generate_keys(unsigned char* privkey_out, unsigned char* p
      * leakage See `secp256k1_context_randomize` in secp256k1.h for more
      * information about it. This should never fail. */
     if (secp256k1_context_randomize(ctx, randomize) == 0){
-        secure_memzero(randomize, sizeof(randomize)); 
+        secp256k1_wrapper_memzero(randomize, sizeof(randomize)); 
         secp256k1_context_destroy(ctx); 
         return -4;// Context randomization failed
     }
     
     // Clear randomization data after use 
-    secure_memzero(randomize, sizeof(randomize)); 
+    secp256k1_wrapper_memzero(randomize, sizeof(randomize)); 
 
     // Generate private key
     unsigned char privkey[SECP256K1_WRAPPER_PRIVKEY_SIZE];
     do {
         if (!secp256k1_wrapper_fill_random(privkey, sizeof(privkey))) {
-            secure_memzero(privkey, sizeof(privkey));
+            secp256k1_wrapper_memzero(privkey, sizeof(privkey));
             secp256k1_context_destroy(ctx);
             return -3;  // Random number generation failed
         }
@@ -139,7 +147,7 @@ int secp256k1_wrapper_generate_keys(unsigned char* privkey_out, unsigned char* p
     // Create public key
     secp256k1_pubkey pubkey;
     if (!secp256k1_ec_pubkey_create(ctx, &pubkey, privkey)) {
-        secure_memzero(privkey, sizeof(privkey));
+        secp256k1_wrapper_memzero(privkey, sizeof(privkey));
         secp256k1_context_destroy(ctx);
         return -5; // Public key creation failed
     }
@@ -147,7 +155,7 @@ int secp256k1_wrapper_generate_keys(unsigned char* privkey_out, unsigned char* p
     // Serialize public key in compressed or uncompresed format
     // on success write to the pubkey_out
     if (!secp256k1_ec_pubkey_serialize(ctx, pubkey_out, &pubkey_len, &pubkey, flags)) {
-        secure_memzero(privkey, sizeof(privkey)); 
+        secp256k1_wrapper_memzero(privkey, sizeof(privkey)); 
         secp256k1_context_destroy(ctx);
         return -6; // Public key serialization failed
     }
@@ -156,7 +164,7 @@ int secp256k1_wrapper_generate_keys(unsigned char* privkey_out, unsigned char* p
     memcpy(privkey_out, privkey, sizeof(privkey)); 
     
     // Clean up on a way out
-    secure_memzero(privkey, sizeof(privkey)); 
+    secp256k1_wrapper_memzero(privkey, sizeof(privkey)); 
     secp256k1_context_destroy(ctx);
     return 0;
 }
@@ -183,18 +191,18 @@ int secp256k1_wrapper_derive_pubkey(const unsigned char* privkey, unsigned char*
     //TODO: Minor - extract ctx random to separate function	
     unsigned char randomize[SECP256K1_WRAPPER_PRIVKEY_SIZE];
     if (!secp256k1_wrapper_fill_random(randomize, sizeof(randomize))) {
-        secure_memzero(randomize, sizeof(randomize));
+        secp256k1_wrapper_memzero(randomize, sizeof(randomize));
         secp256k1_context_destroy(ctx);
         return -3; // Random number generation failed
     }
 
     if (secp256k1_context_randomize(ctx, randomize) == 0) {
-        secure_memzero(randomize, sizeof(randomize));
+        secp256k1_wrapper_memzero(randomize, sizeof(randomize));
         secp256k1_context_destroy(ctx);
         return -4; // Context randomization failed
     }
 
-    secure_memzero(randomize, sizeof(randomize));
+    secp256k1_wrapper_memzero(randomize, sizeof(randomize));
 
     if (!secp256k1_ec_seckey_verify(ctx, privkey)) {
         secp256k1_context_destroy(ctx);
@@ -213,6 +221,27 @@ int secp256k1_wrapper_derive_pubkey(const unsigned char* privkey, unsigned char*
     }
 
     secp256k1_context_destroy(ctx);
+    return 0;
+}
+
+
+int secp256k1_wrapper_verify_privkey(const unsigned char* privkey) {
+    if (privkey == NULL) {
+        return -1; // Invalid input
+    }
+
+    /* Build canary: aborts via the error callback if the library was built
+       wrong (e.g. wrong endianness), which would silently corrupt the range
+       check below. Stateless and thread-safe, so it is called every time. */
+    secp256k1_selftest();
+
+    /* Pure computation on public constants - no context needed. Passing NULL
+       past this point would trip ARG_CHECK and abort() via the static
+       context's default illegal callback, which is why the NULL check above
+       must come first. */
+    if (!secp256k1_ec_seckey_verify(secp256k1_context_static, privkey)) {
+        return -7; // Private key verification failed
+    }
     return 0;
 }
 
