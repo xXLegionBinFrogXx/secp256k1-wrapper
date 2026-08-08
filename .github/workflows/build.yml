@@ -12,7 +12,11 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    strategy:
+      fail-fast: false
+      matrix:
+        # one library type per configure (matches BUILD_SHARED_LIBS)
+        shared: [OFF, ON]
     steps:
       - uses: actions/checkout@v4
 
@@ -20,18 +24,11 @@ jobs:
         run: |
           cmake -S . -B build \
             -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
-            -DBUILD_STATIC=ON \
-            -DBUILD_SHARED=ON \
-            -DBUILD_TESTS=ON
+            -DBUILD_SHARED_LIBS=${{ matrix.shared }} \
+            -DSECP256K1_WRAPPER_BUILD_TESTS=ON
 
-      - name: Build static lib
-        run: cmake --build build --config ${{ env.BUILD_TYPE }} --target secp256k1-wrapper-static -- -j2
+      - name: Build
+        run: cmake --build build --config ${{ env.BUILD_TYPE }} -- -j2
 
-      - name: Build shared lib
-        run: cmake --build build --config ${{ env.BUILD_TYPE }} --target secp256k1-wrapper-shared -- -j2
-
-      - name: Build tests
-        run: cmake --build build --config ${{ env.BUILD_TYPE }} --target test_wrapper -- -j2
-        
       - name: Test
         run: ctest --test-dir build -C ${{ env.BUILD_TYPE }} --output-on-failure
