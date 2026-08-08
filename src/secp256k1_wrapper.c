@@ -33,7 +33,6 @@
   #include <ntstatus.h>
   #include <bcrypt.h>
   #include <limits.h>
-  #define HAVE_WIN_SECURE_ZERO 1
 #elif defined(__linux__) || defined(__FreeBSD__)
   #include <sys/random.h>
   #include <errno.h>
@@ -86,7 +85,7 @@ static void secure_memzero(void *p, size_t n) {
 }
 
 const char* secp256k1_wrapper_get_version(void) {
-    return STR(SECP256K1_WRAPPER_VERSION_MAJOR) "." STR(SECP256K1_WRAPPER_VERSION_MINOR) "." STR(SECP256K1_WRAPPER_VERSION_PATCH);
+    return SECP256K1_WRAPPER_STR(SECP256K1_WRAPPER_VERSION_MAJOR) "." SECP256K1_WRAPPER_STR(SECP256K1_WRAPPER_VERSION_MINOR) "." SECP256K1_WRAPPER_STR(SECP256K1_WRAPPER_VERSION_PATCH);
 }
 
 // Function that generates and returns both private and public keys
@@ -96,7 +95,7 @@ int secp256k1_wrapper_generate_keys(unsigned char* privkey_out, unsigned char* p
         return -1; // Invalid input
     }
 
-    size_t pubkey_len = compressed ? PUBKEY_COMPRESSION_SIZE : PUBKEY_UNCOMPRESSION_SIZE;
+    size_t pubkey_len = compressed ? SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE : SECP256K1_WRAPPER_PUBKEY_UNCOMPRESSION_SIZE;
     int flags = compressed ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED;
 
 
@@ -105,8 +104,9 @@ int secp256k1_wrapper_generate_keys(unsigned char* privkey_out, unsigned char* p
         return -2; // Context creation failed
     }
 
-    unsigned char randomize[PRIVKEY_SIZE];
+    unsigned char randomize[SECP256K1_WRAPPER_PRIVKEY_SIZE];
     if (!secp256k1_wrapper_fill_random(randomize, sizeof(randomize))) {
+        secure_memzero(randomize, sizeof(randomize));
         secp256k1_context_destroy(ctx);  // Clean up ctx before returning
         return -3; // Random number generation failed
     }
@@ -124,7 +124,7 @@ int secp256k1_wrapper_generate_keys(unsigned char* privkey_out, unsigned char* p
     secure_memzero(randomize, sizeof(randomize)); 
 
     // Generate private key
-    unsigned char privkey[PRIVKEY_SIZE];
+    unsigned char privkey[SECP256K1_WRAPPER_PRIVKEY_SIZE];
     do {
         if (!secp256k1_wrapper_fill_random(privkey, sizeof(privkey))) {
             secure_memzero(privkey, sizeof(privkey));
@@ -166,7 +166,7 @@ int secp256k1_wrapper_derive_pubkey(const unsigned char* privkey, unsigned char*
     }
 
     // Set public key length and serialization flag
-    size_t pubkey_len = compressed ? PUBKEY_COMPRESSION_SIZE : PUBKEY_UNCOMPRESSION_SIZE;
+    size_t pubkey_len = compressed ? SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE : SECP256K1_WRAPPER_PUBKEY_UNCOMPRESSION_SIZE;
     int flags = compressed ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED;
 
     secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
@@ -175,8 +175,9 @@ int secp256k1_wrapper_derive_pubkey(const unsigned char* privkey, unsigned char*
     }
 
     //TODO: Minor - extract ctx random to separate function	
-    unsigned char randomize[PRIVKEY_SIZE];
+    unsigned char randomize[SECP256K1_WRAPPER_PRIVKEY_SIZE];
     if (!secp256k1_wrapper_fill_random(randomize, sizeof(randomize))) {
+        secure_memzero(randomize, sizeof(randomize));
         secp256k1_context_destroy(ctx);
         return -3; // Random number generation failed
     }

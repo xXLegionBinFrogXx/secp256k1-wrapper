@@ -3,7 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 
-#include <secp256k1_wrapper.h>  // provides PRIVKEY_SIZE, PUBKEY_*_SIZE and function prototypes
+#include <secp256k1_wrapper.h>  // provides SECP256K1_WRAPPER_PRIVKEY_SIZE, SECP256K1_WRAPPER_PUBKEY_*_SIZE and function prototypes
 
 /* Simple hex printer */
 static void print_hex(const unsigned char *data, size_t len) {
@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
         compressed = parse_compressed_arg(argv[2], 1);
     }
 
-    size_t pubkey_len = compressed ? PUBKEY_COMPRESSION_SIZE : PUBKEY_UNCOMPRESSION_SIZE;
+    size_t pubkey_len = compressed ? SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE : SECP256K1_WRAPPER_PUBKEY_UNCOMPRESSION_SIZE;
 
     printf("secp256k1_wrapper v%s\n", secp256k1_wrapper_get_version());
     printf("Generating %d key pair%s (%s pubkeys: %zu bytes)\n",
@@ -53,9 +53,9 @@ int main(int argc, char *argv[]) {
            pubkey_len);
 
     for (int i = 0; i < pairs_qty; i++) {
-        unsigned char privkey[PRIVKEY_SIZE];
-        unsigned char pubkey[PUBKEY_UNCOMPRESSION_SIZE];         // max size (65)
-        unsigned char derived_pubkey[PUBKEY_UNCOMPRESSION_SIZE]; // max size (65)
+        unsigned char privkey[SECP256K1_WRAPPER_PRIVKEY_SIZE];
+        unsigned char pubkey[SECP256K1_WRAPPER_PUBKEY_UNCOMPRESSION_SIZE];         // max size (65)
+        unsigned char derived_pubkey[SECP256K1_WRAPPER_PUBKEY_UNCOMPRESSION_SIZE]; // max size (65)
 
         memset(pubkey, 0, sizeof(pubkey));
         memset(derived_pubkey, 0, sizeof(derived_pubkey));

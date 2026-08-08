@@ -37,25 +37,25 @@ void tearDown(void) {
 /* ========== Basic Functionality Tests ========== */
 
 void test_generate_compressed_keys(void) {
-    unsigned char privkey[PRIVKEY_SIZE];
-    unsigned char pubkey[PUBKEY_COMPRESSION_SIZE];
+    unsigned char privkey[SECP256K1_WRAPPER_PRIVKEY_SIZE];
+    unsigned char pubkey[SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE];
     
     int result = secp256k1_wrapper_generate_keys(privkey, pubkey, 1);  // 1 = compressed
     TEST_ASSERT_EQUAL_INT(0, result);
     TEST_ASSERT_EQUAL_INT(1, is_valid_privkey(privkey));
-    TEST_ASSERT_EQUAL_INT(0, is_all_zeros(pubkey, PUBKEY_COMPRESSION_SIZE));
+    TEST_ASSERT_EQUAL_INT(0, is_all_zeros(pubkey, SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE));
     
     secure_memzero(privkey, sizeof(privkey));
 }
 
 void test_generate_uncompressed_keys(void) {
-    unsigned char privkey[PRIVKEY_SIZE];
-    unsigned char pubkey[PUBKEY_UNCOMPRESSION_SIZE];
+    unsigned char privkey[SECP256K1_WRAPPER_PRIVKEY_SIZE];
+    unsigned char pubkey[SECP256K1_WRAPPER_PUBKEY_UNCOMPRESSION_SIZE];
     
     int result = secp256k1_wrapper_generate_keys(privkey, pubkey, 0);  // 0 = uncompressed
     TEST_ASSERT_EQUAL_INT(0, result);
     TEST_ASSERT_EQUAL_INT(1, is_valid_privkey(privkey));
-    TEST_ASSERT_EQUAL_INT(0, is_all_zeros(pubkey, PUBKEY_UNCOMPRESSION_SIZE));
+    TEST_ASSERT_EQUAL_INT(0, is_all_zeros(pubkey, SECP256K1_WRAPPER_PUBKEY_UNCOMPRESSION_SIZE));
     
     // Verify uncompressed key starts with 0x04
     TEST_ASSERT_EQUAL_HEX8(0x04, pubkey[0]);
@@ -66,9 +66,9 @@ void test_generate_uncompressed_keys(void) {
 /* ========== derive_pubkey Tests ========== */
 
 void test_derive_pubkey_compressed(void) {
-    unsigned char privkey[PRIVKEY_SIZE];
-    unsigned char generated_pubkey[PUBKEY_COMPRESSION_SIZE];
-    unsigned char derived_pubkey[PUBKEY_COMPRESSION_SIZE];
+    unsigned char privkey[SECP256K1_WRAPPER_PRIVKEY_SIZE];
+    unsigned char generated_pubkey[SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE];
+    unsigned char derived_pubkey[SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE];
     
     // Generate a key pair
     int gen_result = secp256k1_wrapper_generate_keys(privkey, generated_pubkey, 1);
@@ -79,15 +79,15 @@ void test_derive_pubkey_compressed(void) {
     TEST_ASSERT_EQUAL_INT(0, derive_result);
     
     // They should match exactly
-    TEST_ASSERT_EQUAL_MEMORY(generated_pubkey, derived_pubkey, PUBKEY_COMPRESSION_SIZE);
+    TEST_ASSERT_EQUAL_MEMORY(generated_pubkey, derived_pubkey, SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE);
     
     secure_memzero(privkey, sizeof(privkey));
 }
 
 void test_derive_pubkey_uncompressed(void) {
-    unsigned char privkey[PRIVKEY_SIZE];
-    unsigned char generated_pubkey[PUBKEY_UNCOMPRESSION_SIZE];
-    unsigned char derived_pubkey[PUBKEY_UNCOMPRESSION_SIZE];
+    unsigned char privkey[SECP256K1_WRAPPER_PRIVKEY_SIZE];
+    unsigned char generated_pubkey[SECP256K1_WRAPPER_PUBKEY_UNCOMPRESSION_SIZE];
+    unsigned char derived_pubkey[SECP256K1_WRAPPER_PUBKEY_UNCOMPRESSION_SIZE];
     
     // Generate a key pair
     int gen_result = secp256k1_wrapper_generate_keys(privkey, generated_pubkey, 0);
@@ -98,16 +98,16 @@ void test_derive_pubkey_uncompressed(void) {
     TEST_ASSERT_EQUAL_INT(0, derive_result);
     
     // They should match exactly
-    TEST_ASSERT_EQUAL_MEMORY(generated_pubkey, derived_pubkey, PUBKEY_UNCOMPRESSION_SIZE);
+    TEST_ASSERT_EQUAL_MEMORY(generated_pubkey, derived_pubkey, SECP256K1_WRAPPER_PUBKEY_UNCOMPRESSION_SIZE);
     
     secure_memzero(privkey, sizeof(privkey));
 }
 
 void test_same_privkey_different_formats(void) {
-    unsigned char privkey[PRIVKEY_SIZE];
-    unsigned char compressed_pubkey[PUBKEY_COMPRESSION_SIZE];
-    unsigned char derived_compressed[PUBKEY_COMPRESSION_SIZE];
-    unsigned char derived_uncompressed[PUBKEY_UNCOMPRESSION_SIZE];
+    unsigned char privkey[SECP256K1_WRAPPER_PRIVKEY_SIZE];
+    unsigned char compressed_pubkey[SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE];
+    unsigned char derived_compressed[SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE];
+    unsigned char derived_uncompressed[SECP256K1_WRAPPER_PUBKEY_UNCOMPRESSION_SIZE];
     
     // Generate compressed keys
     int result = secp256k1_wrapper_generate_keys(privkey, compressed_pubkey, 1);
@@ -121,7 +121,7 @@ void test_same_privkey_different_formats(void) {
     TEST_ASSERT_EQUAL_INT(0, result);
     
     // Compressed should match
-    TEST_ASSERT_EQUAL_MEMORY(compressed_pubkey, derived_compressed, PUBKEY_COMPRESSION_SIZE);
+    TEST_ASSERT_EQUAL_MEMORY(compressed_pubkey, derived_compressed, SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE);
     
     // Both should be valid and related (can't directly compare due to different formats)
     TEST_ASSERT_EQUAL_HEX8(0x04, derived_uncompressed[0]);  // Uncompressed prefix
@@ -133,20 +133,20 @@ void test_same_privkey_different_formats(void) {
 /* ========== Error Handling Tests ========== */
 
 void test_generate_keys_null_privkey(void) {
-    unsigned char pubkey[PUBKEY_COMPRESSION_SIZE];
+    unsigned char pubkey[SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE];
     int result = secp256k1_wrapper_generate_keys(NULL, pubkey, 1);
     TEST_ASSERT_EQUAL_INT(-1, result);
 }
 
 void test_generate_keys_null_pubkey(void) {
-    unsigned char privkey[PRIVKEY_SIZE];
+    unsigned char privkey[SECP256K1_WRAPPER_PRIVKEY_SIZE];
     int result = secp256k1_wrapper_generate_keys(privkey, NULL, 1);
     TEST_ASSERT_EQUAL_INT(-1, result);
 }
 
 void test_generate_keys_invalid_compressed(void) {
-    unsigned char privkey[PRIVKEY_SIZE];
-    unsigned char pubkey[PUBKEY_COMPRESSION_SIZE];
+    unsigned char privkey[SECP256K1_WRAPPER_PRIVKEY_SIZE];
+    unsigned char pubkey[SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE];
     
     // Test with invalid compressed values
     int result = secp256k1_wrapper_generate_keys(privkey, pubkey, 2);
@@ -160,21 +160,21 @@ void test_generate_keys_invalid_compressed(void) {
 }
 
 void test_derive_pubkey_null_privkey(void) {
-    unsigned char pubkey[PUBKEY_COMPRESSION_SIZE];
+    unsigned char pubkey[SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE];
     int result = secp256k1_wrapper_derive_pubkey(NULL, pubkey, 1);
     TEST_ASSERT_EQUAL_INT(-1, result);
 }
 
 void test_derive_pubkey_null_pubkey(void) {
-    unsigned char privkey[PRIVKEY_SIZE];
+    unsigned char privkey[SECP256K1_WRAPPER_PRIVKEY_SIZE];
     memset(privkey, 0x42, sizeof(privkey));  // Some valid-looking data
     int result = secp256k1_wrapper_derive_pubkey(privkey, NULL, 1);
     TEST_ASSERT_EQUAL_INT(-1, result);
 }
 
 void test_derive_pubkey_invalid_compressed(void) {
-    unsigned char privkey[PRIVKEY_SIZE];
-    unsigned char pubkey[PUBKEY_COMPRESSION_SIZE];
+    unsigned char privkey[SECP256K1_WRAPPER_PRIVKEY_SIZE];
+    unsigned char pubkey[SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE];
     
     // Generate a valid private key first
     int gen_result = secp256k1_wrapper_generate_keys(privkey, pubkey, 1);
@@ -191,8 +191,8 @@ void test_derive_pubkey_invalid_compressed(void) {
 }
 
 void test_derive_pubkey_invalid_privkey(void) {
-    unsigned char invalid_privkey[PRIVKEY_SIZE];
-    unsigned char pubkey[PUBKEY_COMPRESSION_SIZE];
+    unsigned char invalid_privkey[SECP256K1_WRAPPER_PRIVKEY_SIZE];
+    unsigned char pubkey[SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE];
     
     // All zeros is invalid
     memset(invalid_privkey, 0x00, sizeof(invalid_privkey));
@@ -209,8 +209,8 @@ void test_derive_pubkey_invalid_privkey(void) {
 
 void test_stress_compressed_generation(void) {
     const int num_keys = 100;
-    unsigned char privkey[PRIVKEY_SIZE];
-    unsigned char pubkey[PUBKEY_COMPRESSION_SIZE];
+    unsigned char privkey[SECP256K1_WRAPPER_PRIVKEY_SIZE];
+    unsigned char pubkey[SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE];
     
     for (int i = 0; i < num_keys; i++) {
         memset(privkey, 0, sizeof(privkey));
@@ -219,7 +219,7 @@ void test_stress_compressed_generation(void) {
         int result = secp256k1_wrapper_generate_keys(privkey, pubkey, 1);
         TEST_ASSERT_EQUAL_INT(0, result);
         TEST_ASSERT_EQUAL_INT(1, is_valid_privkey(privkey));
-        TEST_ASSERT_EQUAL_INT(0, is_all_zeros(pubkey, PUBKEY_COMPRESSION_SIZE));
+        TEST_ASSERT_EQUAL_INT(0, is_all_zeros(pubkey, SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE));
         
         secure_memzero(privkey, sizeof(privkey));
     }
@@ -227,8 +227,8 @@ void test_stress_compressed_generation(void) {
 
 void test_stress_uncompressed_generation(void) {
     const int num_keys = 100;
-    unsigned char privkey[PRIVKEY_SIZE];
-    unsigned char pubkey[PUBKEY_UNCOMPRESSION_SIZE];
+    unsigned char privkey[SECP256K1_WRAPPER_PRIVKEY_SIZE];
+    unsigned char pubkey[SECP256K1_WRAPPER_PUBKEY_UNCOMPRESSION_SIZE];
     
     for (int i = 0; i < num_keys; i++) {
         memset(privkey, 0, sizeof(privkey));
@@ -237,7 +237,7 @@ void test_stress_uncompressed_generation(void) {
         int result = secp256k1_wrapper_generate_keys(privkey, pubkey, 0);
         TEST_ASSERT_EQUAL_INT(0, result);
         TEST_ASSERT_EQUAL_INT(1, is_valid_privkey(privkey));
-        TEST_ASSERT_EQUAL_INT(0, is_all_zeros(pubkey, PUBKEY_UNCOMPRESSION_SIZE));
+        TEST_ASSERT_EQUAL_INT(0, is_all_zeros(pubkey, SECP256K1_WRAPPER_PUBKEY_UNCOMPRESSION_SIZE));
         TEST_ASSERT_EQUAL_HEX8(0x04, pubkey[0]);
         
         secure_memzero(privkey, sizeof(privkey));
@@ -246,11 +246,11 @@ void test_stress_uncompressed_generation(void) {
 
 void test_key_uniqueness(void) {
     enum { num_keys = 50 };
-    unsigned char keys[num_keys][PRIVKEY_SIZE];
+    unsigned char keys[num_keys][SECP256K1_WRAPPER_PRIVKEY_SIZE];
     
     // Generate multiple keys
     for (int i = 0; i < num_keys; i++) {
-        unsigned char pubkey[PUBKEY_COMPRESSION_SIZE];
+        unsigned char pubkey[SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE];
         int result = secp256k1_wrapper_generate_keys(keys[i], pubkey, 1);
         TEST_ASSERT_EQUAL_INT(0, result);
     }
@@ -258,7 +258,7 @@ void test_key_uniqueness(void) {
     // Check for uniqueness
     for (int i = 0; i < num_keys; i++) {
         for (int j = i + 1; j < num_keys; j++) {
-            TEST_ASSERT_FALSE(memcmp(keys[i], keys[j], PRIVKEY_SIZE) == 0);
+            TEST_ASSERT_FALSE(memcmp(keys[i], keys[j], SECP256K1_WRAPPER_PRIVKEY_SIZE) == 0);
         }
     }
     
@@ -270,9 +270,9 @@ void test_key_uniqueness(void) {
 
 void test_known_private_key(void) {
     // Test with a known private key (all 0x01 bytes, which is valid)
-    unsigned char privkey[PRIVKEY_SIZE];
-    unsigned char pubkey_compressed[PUBKEY_COMPRESSION_SIZE];
-    unsigned char pubkey_uncompressed[PUBKEY_UNCOMPRESSION_SIZE];
+    unsigned char privkey[SECP256K1_WRAPPER_PRIVKEY_SIZE];
+    unsigned char pubkey_compressed[SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE];
+    unsigned char pubkey_uncompressed[SECP256K1_WRAPPER_PUBKEY_UNCOMPRESSION_SIZE];
     
     // Set private key to 0x0000...0001 (valid private key)
     memset(privkey, 0x00, sizeof(privkey));
@@ -293,7 +293,7 @@ void test_known_private_key(void) {
         0xD9, 0x59, 0xF2, 0x81, 0x5B, 0x16, 0xF8, 0x17, 0x98
     };
     
-    TEST_ASSERT_EQUAL_MEMORY(expected_compressed, pubkey_compressed, PUBKEY_COMPRESSION_SIZE);
+    TEST_ASSERT_EQUAL_MEMORY(expected_compressed, pubkey_compressed, SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE);
     
     secure_memzero(privkey, sizeof(privkey));
 }

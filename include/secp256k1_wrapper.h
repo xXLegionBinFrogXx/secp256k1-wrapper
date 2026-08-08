@@ -13,27 +13,34 @@
 #ifndef SECP256K1_WRAPPER_H
 #define SECP256K1_WRAPPER_H
 
-#include <stdlib.h>
+#include <stddef.h>
 
 #define SECP256K1_WRAPPER_VERSION_MAJOR 1
 #define SECP256K1_WRAPPER_VERSION_MINOR 4
 #define SECP256K1_WRAPPER_VERSION_PATCH 0
 
-#define STR_HELPER(x) #x
-#define STR(x) STR_HELPER(x)
+#define SECP256K1_WRAPPER_STR_HELPER(x) #x
+#define SECP256K1_WRAPPER_STR(x) SECP256K1_WRAPPER_STR_HELPER(x)
 
 // Define constants
-#define PRIVKEY_SIZE 32
-#define PUBKEY_COMPRESSION_SIZE 33
-#define PUBKEY_UNCOMPRESSION_SIZE 65
+#define SECP256K1_WRAPPER_PRIVKEY_SIZE 32
+#define SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE 33
+#define SECP256K1_WRAPPER_PUBKEY_UNCOMPRESSION_SIZE 65
 
 /* ---- Compile-time size sanity checks ---- */
-#if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L)
-  _Static_assert(PRIVKEY_SIZE == 32, "PRIVKEY_SIZE must be 32");
-  _Static_assert(PUBKEY_COMPRESSION_SIZE == 33, "PUBKEY_COMPRESSION_SIZE must be 33");
-  _Static_assert(PUBKEY_UNCOMPRESSION_SIZE == 65, "PUBKEY_UNCOMPRESSION_SIZE must be 65");
+#if defined(__cplusplus) && (__cplusplus >= 201103L)
+  static_assert(SECP256K1_WRAPPER_PRIVKEY_SIZE == 32, "SECP256K1_WRAPPER_PRIVKEY_SIZE must be 32");
+  static_assert(SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE == 33, "SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE must be 33");
+  static_assert(SECP256K1_WRAPPER_PUBKEY_UNCOMPRESSION_SIZE == 65, "SECP256K1_WRAPPER_PUBKEY_UNCOMPRESSION_SIZE must be 65");
+#elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L)
+  _Static_assert(SECP256K1_WRAPPER_PRIVKEY_SIZE == 32, "SECP256K1_WRAPPER_PRIVKEY_SIZE must be 32");
+  _Static_assert(SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE == 33, "SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE must be 33");
+  _Static_assert(SECP256K1_WRAPPER_PUBKEY_UNCOMPRESSION_SIZE == 65, "SECP256K1_WRAPPER_PUBKEY_UNCOMPRESSION_SIZE must be 65");
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @brief Get the version string of the library.
@@ -146,5 +153,9 @@ int secp256k1_wrapper_derive_pubkey(const unsigned char* privkey, unsigned char*
  * 
  */
 int secp256k1_wrapper_fill_random(unsigned char* data, size_t size);
+
+#ifdef __cplusplus
+}  /* extern "C" */
+#endif
 
 #endif // SECP256K1_WRAPPER_H
