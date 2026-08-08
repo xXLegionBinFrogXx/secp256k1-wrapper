@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(secp256k1-wrapper VERSION 1.4.0 LANGUAGES C)
+project(secp256k1-wrapper VERSION 2.0.0 LANGUAGES C)
 
 # Set default build type
 if(NOT CMAKE_BUILD_TYPE)

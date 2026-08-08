@@ -89,13 +89,16 @@ const char* secp256k1_wrapper_get_version(void) {
 }
 
 // Function that generates and returns both private and public keys
-int secp256k1_wrapper_generate_keys(unsigned char* privkey_out, unsigned char* pubkey_out, int compressed) {
+int secp256k1_wrapper_generate_keys(unsigned char* privkey_out, unsigned char* pubkey_out, size_t pubkey_out_len, int compressed) {
 
     if (privkey_out == NULL || pubkey_out == NULL || (compressed != 0 && compressed != 1)) {
         return -1; // Invalid input
     }
 
     size_t pubkey_len = compressed ? SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE : SECP256K1_WRAPPER_PUBKEY_UNCOMPRESSION_SIZE;
+    if (pubkey_out_len < pubkey_len) {
+        return -8; // Output buffer too small
+    }
     int flags = compressed ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED;
 
 
@@ -159,7 +162,7 @@ int secp256k1_wrapper_generate_keys(unsigned char* privkey_out, unsigned char* p
 }
 
 
-int secp256k1_wrapper_derive_pubkey(const unsigned char* privkey, unsigned char* pubkey_out, int compressed) {
+int secp256k1_wrapper_derive_pubkey(const unsigned char* privkey, unsigned char* pubkey_out, size_t pubkey_out_len, int compressed) {
 
     if (privkey == NULL || pubkey_out == NULL || (compressed != 0 && compressed != 1)) {
         return -1; // Invalid input
@@ -167,6 +170,9 @@ int secp256k1_wrapper_derive_pubkey(const unsigned char* privkey, unsigned char*
 
     // Set public key length and serialization flag
     size_t pubkey_len = compressed ? SECP256K1_WRAPPER_PUBKEY_COMPRESSION_SIZE : SECP256K1_WRAPPER_PUBKEY_UNCOMPRESSION_SIZE;
+    if (pubkey_out_len < pubkey_len) {
+        return -8; // Output buffer too small
+    }
     int flags = compressed ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED;
 
     secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);

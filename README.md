@@ -3,7 +3,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CMake](https://img.shields.io/badge/CMake-3.15+-blue.svg)](https://cmake.org/)
 [![C Standard](https://img.shields.io/badge/C-C99-blue.svg)](https://en.wikipedia.org/wiki/C99)
-[![Build](https://github.com/xXLegionBinFrogXx/secp256k1-wrapper/actions/workflows/build.yml/badge.svg)](https://github.com/xXLegionBinFrogXx/secp256k1-wrapper/actions/workflows/build.yml)
 
 A modern, lightweight C wrapper library for [libsecp256k1](https://github.com/bitcoin-core/secp256k1) that simplifies basic elliptic curve cryptography operations for secp256k1 keys.
 
@@ -136,7 +135,7 @@ int main() {
     unsigned char privkey[32];
     unsigned char pubkey[33];  // 33 bytes compressed
 
-    int result = secp256k1_wrapper_generate_keys(privkey, pubkey, 1);
+    int result = secp256k1_wrapper_generate_keys(privkey, pubkey, sizeof(pubkey), 1);
     if (result != 0) {
         printf("Key generation failed: %d\n", result);
         return 1;
@@ -154,7 +153,7 @@ int main() {
 int main() {
     unsigned char privkey[32];
     unsigned char pubkey[33];
-    int result = secp256k1_wrapper_generate_keys(privkey, pubkey, 1);
+    int result = secp256k1_wrapper_generate_keys(privkey, pubkey, sizeof(pubkey), 1);
     if (result != 0) {
         std::cerr << "Key generation failed\n";
         return 1;
@@ -179,7 +178,7 @@ import "fmt"
 func main() {
     var privkey [32]C.uchar
     var pubkey [33]C.uchar
-    result := C.secp256k1_wrapper_generate_keys(&privkey[0], &pubkey[0], 1)
+    result := C.secp256k1_wrapper_generate_keys(&privkey[0], &pubkey[0], C.size_t(len(pubkey)), 1)
     if result != 0 {
         fmt.Println("Key generation failed")
         return
@@ -202,6 +201,7 @@ func main() {
 | `-5` | Public key creation failed                                    |
 | `-6` | Public key serialization failed                               |
 | `-7` | Private key verification failed (`derive_pubkey` only)        |
+| `-8` | Output buffer too small for the requested key format          |
 
 ## Error Handling Examples
 
@@ -218,6 +218,7 @@ const char* get_error_message(int code) {
         case -5: return "Public key creation failed";
         case -6: return "Public key serialization failed";
         case -7: return "Private key verification failed";
+        case -8: return "Output buffer too small";
         default: return "Unknown error";
     }
 }
@@ -241,6 +242,7 @@ private:
             case -5: return "Public key creation failed";
             case -6: return "Public key serialization failed";
             case -7: return "Private key verification failed";
+            case -8: return "Output buffer too small";
             default: return "Unknown error";
         }
     }
@@ -260,6 +262,7 @@ func getErrorMessage(code int) error {
     case -5: return errors.New("public key creation failed")
     case -6: return errors.New("public key serialization failed")
     case -7: return errors.New("private key verification failed")
+    case -8: return errors.New("output buffer too small")
     default: return fmt.Errorf("unknown error (code: %d)", code)
     }
 }

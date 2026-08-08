@@ -60,13 +60,13 @@ int main(int argc, char *argv[]) {
         memset(pubkey, 0, sizeof(pubkey));
         memset(derived_pubkey, 0, sizeof(derived_pubkey));
 
-        int gres = secp256k1_wrapper_generate_keys(privkey, pubkey, compressed);
+        int gres = secp256k1_wrapper_generate_keys(privkey, pubkey, sizeof(pubkey), compressed);
         if (gres != 0) {
             fprintf(stderr, "secp256k1_wrapper_generate_keys failed (%d) for pair %d\n", gres, i);
             continue;
         }
 
-        int dres = secp256k1_wrapper_derive_pubkey(privkey, derived_pubkey, compressed);
+        int dres = secp256k1_wrapper_derive_pubkey(privkey, derived_pubkey, sizeof(derived_pubkey), compressed);
         if (dres != 0) {
             fprintf(stderr, "secp256k1_wrapper_derive_pubkey failed (%d) for pair %d\n", dres, i);
             secure_memzero(privkey, sizeof(privkey));

@@ -15,8 +15,8 @@
 
 #include <stddef.h>
 
-#define SECP256K1_WRAPPER_VERSION_MAJOR 1
-#define SECP256K1_WRAPPER_VERSION_MINOR 4
+#define SECP256K1_WRAPPER_VERSION_MAJOR 2
+#define SECP256K1_WRAPPER_VERSION_MINOR 0
 #define SECP256K1_WRAPPER_VERSION_PATCH 0
 
 #define SECP256K1_WRAPPER_STR_HELPER(x) #x
@@ -71,12 +71,16 @@ const char* secp256k1_wrapper_get_version(void);
  *                         be pre-allocated by the caller. Contents are
  *                         undefined on failure.
  * @param[out] pubkey_out  Pointer to an array where the public key will be stored.
- *                         Must be at least 33 bytes for compressed or 65 bytes
- *                         for uncompressed. This buffer must be pre-allocated.
- *                         Contents are undefined on failure.
- * @param[in] compressed   Non-zero for compressed public key (33 bytes),
- *                         zero for uncompressed public key (65 bytes).
- * 
+ *                         Must be at least pubkey_out_len bytes, and
+ *                         pubkey_out_len must be at least 33 bytes for
+ *                         compressed or 65 bytes for uncompressed. This
+ *                         buffer must be pre-allocated. Contents are
+ *                         undefined on failure.
+ * @param[in] pubkey_out_len Size in bytes of the pubkey_out buffer.
+ * @param[in] compressed   1 for compressed public key (33 bytes), 0 for
+ *                         uncompressed public key (65 bytes). Any other
+ *                         value returns -1.
+ *
  * @return int Returns 0 on success, or a negative value on error:
  *             - -1: Invalid input (null buffers or invalid compressed value).
  *             - -2: Context creation failed.
@@ -84,20 +88,21 @@ const char* secp256k1_wrapper_get_version(void);
  *             - -4: Context randomization failed.
  *             - -5: Public key creation failed.
  *             - -6: Public key serialization failed.
+ *             - -8: pubkey_out_len is smaller than the size required by compressed.
  *
  * @note Callers that only check `result != 0` (or `result < 0`) for failure
  *       are unaffected by the specific code returned.
  *
- * @note The output buffers must be correctly sized (32 bytes for the 
- *       private key, 33 or 65 bytes for the public key) to avoid memory 
- *       corruption. On failure, the contents of output buffers are undefined
- *       and should not be used.
+ * @note pubkey_out_len is validated before any key material is generated.
+ *       The private key buffer must still be sized correctly by the caller
+ *       (32 bytes); this is not separately checked. On failure, the contents
+ *       of output buffers are undefined and should not be used.
  *
- * @warning It is the caller's responsibility to ensure the output buffers 
- *          are valid and to manage the keys securely after generation to 
+ * @warning It is the caller's responsibility to ensure the output buffers
+ *          are valid and to manage the keys securely after generation to
  *          prevent unintended exposure.
  */
-int secp256k1_wrapper_generate_keys(unsigned char* privkey_out, unsigned char* pubkey_out, int compressed);
+int secp256k1_wrapper_generate_keys(unsigned char* privkey_out, unsigned char* pubkey_out, size_t pubkey_out_len, int compressed);
 
 
 /**
@@ -107,12 +112,16 @@ int secp256k1_wrapper_generate_keys(unsigned char* privkey_out, unsigned char* p
  * 32-byte private key using the secp256k1 elliptic curve.
  * 
  * @param[in] privkey      A 32-byte private key.
- * @param[out] pubkey_out  A buffer to store the public key (33 bytes for compressed,
- *                         65 bytes for uncompressed). Must be pre-allocated.
- *                         Contents are undefined on failure.
- * @param[in] compressed   Non-zero for compressed public key (33 bytes),
- *                         zero for uncompressed public key (65 bytes).
- * 
+ * @param[out] pubkey_out  A buffer to store the public key. Must be at least
+ *                         pubkey_out_len bytes, and pubkey_out_len must be at
+ *                         least 33 bytes for compressed or 65 bytes for
+ *                         uncompressed. Must be pre-allocated. Contents are
+ *                         undefined on failure.
+ * @param[in] pubkey_out_len Size in bytes of the pubkey_out buffer.
+ * @param[in] compressed   1 for compressed public key (33 bytes), 0 for
+ *                         uncompressed public key (65 bytes). Any other
+ *                         value returns -1.
+ *
  * @return int Returns 0 on success, or a negative value on error:
  *             - -1: Invalid input (null buffers or invalid compressed value).
  *             - -2: Context creation failed.
@@ -121,13 +130,14 @@ int secp256k1_wrapper_generate_keys(unsigned char* privkey_out, unsigned char* p
  *             - -5: Public key creation failed.
  *             - -6: Public key serialization failed.
  *             - -7: Private key verification failed.
+ *             - -8: pubkey_out_len is smaller than the size required by compressed.
  *
  * @note Callers that only check `result != 0` (or `result < 0`) for failure
  *       are unaffected by the specific code returned.
  *
  * @note On failure, the contents of pubkey_out are undefined and should not be used.
  */
-int secp256k1_wrapper_derive_pubkey(const unsigned char* privkey, unsigned char* pubkey_out,int compressed);
+int secp256k1_wrapper_derive_pubkey(const unsigned char* privkey, unsigned char* pubkey_out, size_t pubkey_out_len, int compressed);
 
 
 /**
