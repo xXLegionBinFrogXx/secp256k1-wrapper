@@ -72,9 +72,14 @@ const char* secp256k1_wrapper_get_version(void);
  * 
  * @return int Returns 0 on success, or a negative value on error:
  *             - -1: Invalid input (null buffers or invalid compressed value).
- *             - -2: Context creation or randomization failed.
+ *             - -2: Context creation failed.
  *             - -3: Random number generation failed.
- *             - -5: Public key creation or serialization failed.
+ *             - -4: Context randomization failed.
+ *             - -5: Public key creation failed.
+ *             - -6: Public key serialization failed.
+ *
+ * @note Callers that only check `result != 0` (or `result < 0`) for failure
+ *       are unaffected by the specific code returned.
  *
  * @note The output buffers must be correctly sized (32 bytes for the 
  *       private key, 33 or 65 bytes for the public key) to avoid memory 
@@ -103,9 +108,15 @@ int secp256k1_wrapper_generate_keys(unsigned char* privkey_out, unsigned char* p
  * 
  * @return int Returns 0 on success, or a negative value on error:
  *             - -1: Invalid input (null buffers or invalid compressed value).
- *             - -2: Context creation or randomization failed.
+ *             - -2: Context creation failed.
  *             - -3: Random number generation failed.
- *             - -5: Public key creation or serialization failed.
+ *             - -4: Context randomization failed.
+ *             - -5: Public key creation failed.
+ *             - -6: Public key serialization failed.
+ *             - -7: Private key verification failed.
+ *
+ * @note Callers that only check `result != 0` (or `result < 0`) for failure
+ *       are unaffected by the specific code returned.
  *
  * @note On failure, the contents of pubkey_out are undefined and should not be used.
  */

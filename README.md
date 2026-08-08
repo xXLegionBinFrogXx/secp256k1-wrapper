@@ -5,21 +5,8 @@
 [![C Standard](https://img.shields.io/badge/C-C99-blue.svg)](https://en.wikipedia.org/wiki/C99)
 [![Build](https://github.com/xXLegionBinFrogXx/secp256k1-wrapper/actions/workflows/build.yml/badge.svg)](https://github.com/xXLegionBinFrogXx/secp256k1-wrapper/actions/workflows/build.yml)
 
-A modern, lightweight C wrapper library for [libsecp256k1](https://github.com/bitcoin-core/secp256k1) that simplifies elliptic curve cryptography operations for secp256k1 keys.
+A modern, lightweight C wrapper library for [libsecp256k1](https://github.com/bitcoin-core/secp256k1) that simplifies basic elliptic curve cryptography operations for secp256k1 keys.
 
-## Features
-
-| Feature                | Description                                                            |
-| ---------------------- | ---------------------------------------------------------------------- |
-| **Simple API**      | Easy-to-use functions for key generation and derivation                |
-| **Cross-Platform**  | Supports Windows, macOS, Linux, and BSD                                |
-| **Secure**          | Platform-specific secure random number generation                      |
-| **Thread-Safe**     | No global state, context management per operation                      |
-| **Modern Build**    | CMake-based build system using latest secp256k1 v0.8.0 features        |
-| **Well Tested**      | Comprehensive test suite with Unity v2.6.1 framework                   |
-| **No Manual Setup** | Dependencies auto-fetched via CMake, no git submodules or manual setup |
-
----
 
 ## Quick Start
 
@@ -124,8 +111,7 @@ This project produces two flavors of the wrapper:
 | **Windows** | `BCryptGenRandom`       | Uses Windows Crypto API       |
 | **Linux**   | `getrandom()` syscall   | Falls back to `/dev/urandom`  |
 | **macOS**   | `CCRandomGenerateBytes` | Falls back to `getentropy()`  |
-| **OpenBSD** | `getentropy()`          | Limited to 256 bytes per call |
-| **FreeBSD** | `getrandom()` syscall   | Similar to Linux              |
+
 
 ## Dependencies
 
@@ -173,7 +159,7 @@ int main() {
         std::cerr << "Key generation failed\n";
         return 1;
     }
-    std::cout << "✅ Keys generated successfully\n";
+    std::cout << "Keys generated successfully\n";
 }
 ```
 
@@ -198,7 +184,7 @@ func main() {
         fmt.Println("Key generation failed")
         return
     }
-    fmt.Println("✅ Keys generated successfully")
+    fmt.Println("Keys generated successfully")
 }
 ```
 
@@ -206,13 +192,16 @@ func main() {
 
 ## Error Codes
 
-| Code | Description                              |
-| ---- | ---------------------------------------- |
-| `0`  | Success                                  |
-| `-1` | Invalid input parameters                 |
-| `-2` | Context creation/randomization failed    |
-| `-3` | Random number generation failed          |
-| `-5` | Public key creation/serialization failed |
+| Code | Description                                                  |
+| ---- | -------------------------------------------------------------|
+| `0`  | Success                                                       |
+| `-1` | Invalid input parameters                                      |
+| `-2` | Context creation failed                                       |
+| `-3` | Random number generation failed                               |
+| `-4` | Context randomization failed                                  |
+| `-5` | Public key creation failed                                    |
+| `-6` | Public key serialization failed                               |
+| `-7` | Private key verification failed (`derive_pubkey` only)        |
 
 ## Error Handling Examples
 
@@ -223,9 +212,12 @@ const char* get_error_message(int code) {
     switch (code) {
         case 0: return "Success";
         case -1: return "Invalid input parameters";
-        case -2: return "Context creation/randomization failed";
+        case -2: return "Context creation failed";
         case -3: return "Random number generation failed";
-        case -5: return "Public key creation/serialization failed";
+        case -4: return "Context randomization failed";
+        case -5: return "Public key creation failed";
+        case -6: return "Public key serialization failed";
+        case -7: return "Private key verification failed";
         default: return "Unknown error";
     }
 }
@@ -245,7 +237,10 @@ private:
             case -1: return "Invalid input parameters";
             case -2: return "Context creation failed";
             case -3: return "Random generation failed";
+            case -4: return "Context randomization failed";
             case -5: return "Public key creation failed";
+            case -6: return "Public key serialization failed";
+            case -7: return "Private key verification failed";
             default: return "Unknown error";
         }
     }
@@ -259,9 +254,12 @@ func getErrorMessage(code int) error {
     switch code {
     case 0: return nil
     case -1: return errors.New("invalid input parameters")
-    case -2: return errors.New("context creation/randomization failed")
+    case -2: return errors.New("context creation failed")
     case -3: return errors.New("random number generation failed")
-    case -5: return errors.New("public key creation/serialization failed")
+    case -4: return errors.New("context randomization failed")
+    case -5: return errors.New("public key creation failed")
+    case -6: return errors.New("public key serialization failed")
+    case -7: return errors.New("private key verification failed")
     default: return fmt.Errorf("unknown error (code: %d)", code)
     }
 }
@@ -292,11 +290,11 @@ func getErrorMessage(code int) error {
 
 ### Learn More
 
-* 📚 [Elliptic Curve Cryptography Guide](https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm)
-* 🔐 [Practical Cryptography for Developers](https://cryptobook.nakov.com/)
-* 📖 [Introduction to secp256k1](https://en.bitcoin.it/wiki/Secp256k1)
-* 🛠️ [libsecp256k1 GitHub](https://github.com/bitcoin-core/secp256k1)
-* 💻 [Mastering Bitcoin](https://github.com/bitcoinbook/bitcoinbook)
+* [Elliptic Curve Cryptography Guide](https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm)
+* [Practical Cryptography for Developers](https://cryptobook.nakov.com/)
+* [Introduction to secp256k1](https://en.bitcoin.it/wiki/Secp256k1)
+* [libsecp256k1 GitHub](https://github.com/bitcoin-core/secp256k1)
+* [Mastering Bitcoin](https://github.com/bitcoinbook/bitcoinbook)
 
 ---
 

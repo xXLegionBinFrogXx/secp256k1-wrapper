@@ -117,7 +117,7 @@ int secp256k1_wrapper_generate_keys(unsigned char* privkey_out, unsigned char* p
     if (secp256k1_context_randomize(ctx, randomize) == 0){
         secure_memzero(randomize, sizeof(randomize)); 
         secp256k1_context_destroy(ctx); 
-        return -2;// Context randomization failed
+        return -4;// Context randomization failed
     }
     
     // Clear randomization data after use 
@@ -127,6 +127,7 @@ int secp256k1_wrapper_generate_keys(unsigned char* privkey_out, unsigned char* p
     unsigned char privkey[PRIVKEY_SIZE];
     do {
         if (!secp256k1_wrapper_fill_random(privkey, sizeof(privkey))) {
+            secure_memzero(privkey, sizeof(privkey));
             secp256k1_context_destroy(ctx);
             return -3;  // Random number generation failed
         }
@@ -145,7 +146,7 @@ int secp256k1_wrapper_generate_keys(unsigned char* privkey_out, unsigned char* p
     if (!secp256k1_ec_pubkey_serialize(ctx, pubkey_out, &pubkey_len, &pubkey, flags)) {
         secure_memzero(privkey, sizeof(privkey)); 
         secp256k1_context_destroy(ctx);
-        return -5; // Public key serialization failed
+        return -6; // Public key serialization failed
     }
     
     // Safe since both are 32 bytes
@@ -183,14 +184,14 @@ int secp256k1_wrapper_derive_pubkey(const unsigned char* privkey, unsigned char*
     if (secp256k1_context_randomize(ctx, randomize) == 0) {
         secure_memzero(randomize, sizeof(randomize));
         secp256k1_context_destroy(ctx);
-        return -2; // Context randomization failed
+        return -4; // Context randomization failed
     }
 
     secure_memzero(randomize, sizeof(randomize));
 
     if (!secp256k1_ec_seckey_verify(ctx, privkey)) {
         secp256k1_context_destroy(ctx);
-        return -5; // Private key verification failed
+        return -7; // Private key verification failed
     }
 
     secp256k1_pubkey pubkey;
@@ -201,7 +202,7 @@ int secp256k1_wrapper_derive_pubkey(const unsigned char* privkey, unsigned char*
 
     if (!secp256k1_ec_pubkey_serialize(ctx, pubkey_out, &pubkey_len, &pubkey, flags)) {
         secp256k1_context_destroy(ctx);
-        return -5; // Public key serialization failed
+        return -6; // Public key serialization failed
     }
 
     secp256k1_context_destroy(ctx);

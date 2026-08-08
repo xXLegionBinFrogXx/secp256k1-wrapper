@@ -106,7 +106,6 @@ void test_derive_pubkey_uncompressed(void) {
 void test_same_privkey_different_formats(void) {
     unsigned char privkey[PRIVKEY_SIZE];
     unsigned char compressed_pubkey[PUBKEY_COMPRESSION_SIZE];
-    unsigned char uncompressed_pubkey[PUBKEY_UNCOMPRESSION_SIZE];
     unsigned char derived_compressed[PUBKEY_COMPRESSION_SIZE];
     unsigned char derived_uncompressed[PUBKEY_UNCOMPRESSION_SIZE];
     
@@ -198,12 +197,12 @@ void test_derive_pubkey_invalid_privkey(void) {
     // All zeros is invalid
     memset(invalid_privkey, 0x00, sizeof(invalid_privkey));
     int result = secp256k1_wrapper_derive_pubkey(invalid_privkey, pubkey, 1);
-    TEST_ASSERT_EQUAL_INT(-5, result);
+    TEST_ASSERT_EQUAL_INT(-7, result);
     
     // All 0xFF is likely invalid (exceeds curve order)
     memset(invalid_privkey, 0xFF, sizeof(invalid_privkey));
     result = secp256k1_wrapper_derive_pubkey(invalid_privkey, pubkey, 1);
-    TEST_ASSERT_EQUAL_INT(-5, result);
+    TEST_ASSERT_EQUAL_INT(-7, result);
 }
 
 /* ========== Stress Tests ========== */
@@ -246,7 +245,7 @@ void test_stress_uncompressed_generation(void) {
 }
 
 void test_key_uniqueness(void) {
-    const int num_keys = 50;
+    enum { num_keys = 50 };
     unsigned char keys[num_keys][PRIVKEY_SIZE];
     
     // Generate multiple keys
