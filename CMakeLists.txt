@@ -8,10 +8,14 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Build options
-option(BUILD_TESTS "Build test suite" OFF)
-option(BUILD_EXAMPLES "Build example programs" OFF)
-option(BUILD_SHARED "Build shared library" ON)
-option(BUILD_STATIC "Build static library" ON)
+option(SECP256K1_WRAPPER_BUILD_TESTS "Build test suite" OFF)
+option(SECP256K1_WRAPPER_BUILD_EXAMPLES "Build example programs" OFF)
+
+# Library type follows the standard CMake variable; static by default,
+# matching the target the `secp256k1-wrapper` alias resolved to before.
+if(NOT DEFINED BUILD_SHARED_LIBS)
+    set(BUILD_SHARED_LIBS OFF)
+endif()
 
 include(GNUInstallDirs)
 include(FetchContent)
@@ -38,156 +42,98 @@ message(STATUS "Fetching secp256k1 dependency")
 
 FetchContent_Declare(secp256k1
   GIT_REPOSITORY https://github.com/bitcoin-core/secp256k1.git
-  GIT_TAG        v0.8.0
+  GIT_TAG        6e2c8bc4ecdc6e71dbe7a368f360d8d453ce435d  # v0.8.0
 )
 
+set(_sw_saved_bsl ${BUILD_SHARED_LIBS})
+set(BUILD_SHARED_LIBS OFF)   # we embed secp256k1's objects; no separate .so wanted
 FetchContent_MakeAvailable(secp256k1)
+set(BUILD_SHARED_LIBS ${_sw_saved_bsl})
+unset(_sw_saved_bsl)
 
 # Define wrapper library sources
 set(WRAPPER_SOURCES src/secp256k1_wrapper.c)
 
 # Platform-specific libraries
-if(WIN32)
-    set(PLATFORM_LIBS bcrypt)
-elseif(APPLE)
+if(APPLE)
     find_library(SECURITY_FRAMEWORK Security)
     if(NOT SECURITY_FRAMEWORK)
         message(FATAL_ERROR "Security framework not found")
     endif()
     set(PLATFORM_LIBS ${SECURITY_FRAMEWORK}) # CommonCrypto is headers-only in libSystem
 else()
-    # Linux/Unix - no additional libraries needed
+    # Linux - no additional libraries needed
     set(PLATFORM_LIBS)
 endif()
 
-# Create static library target
-if(BUILD_STATIC)
-    add_library(secp256k1-wrapper-static STATIC)
-    
-    target_sources(secp256k1-wrapper-static
-        PRIVATE
-        ${WRAPPER_SOURCES}
-        $<TARGET_PROPERTY:secp256k1_objs,INTERFACE_SOURCES>
-    )
+# Create wrapper library target (type follows BUILD_SHARED_LIBS)
+add_library(secp256k1-wrapper-lib)
 
-    target_sources(secp256k1-wrapper-static
-        PUBLIC
-        FILE_SET HEADERS 
-            BASE_DIRS include
-            FILES include/secp256k1_wrapper.h
-    )
+target_sources(secp256k1-wrapper-lib
+    PRIVATE
+    ${WRAPPER_SOURCES}
+    $<TARGET_PROPERTY:secp256k1_objs,INTERFACE_SOURCES> # Embed secp256k1 sources
+)
 
-    target_link_libraries(secp256k1-wrapper-static PRIVATE ${PLATFORM_LIBS})
+target_sources(secp256k1-wrapper-lib
+    PUBLIC
+    FILE_SET HEADERS
+        BASE_DIRS include
+        FILES include/secp256k1_wrapper.h
+)
 
-    target_include_directories(secp256k1-wrapper-static
-        PUBLIC
-            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-        PRIVATE
-            $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
-    )
+target_link_libraries(secp256k1-wrapper-lib PRIVATE ${PLATFORM_LIBS})
 
-    target_compile_features(secp256k1-wrapper-static PUBLIC c_std_99)
-    if(MSVC)
-        target_compile_options(secp256k1-wrapper-static PRIVATE /W4)
-    else()
-        target_compile_options(secp256k1-wrapper-static PRIVATE -Wall -Wextra -Wpedantic)
-    endif()
-    
-    set_target_properties(secp256k1-wrapper-static PROPERTIES
-        OUTPUT_NAME secp256k1-wrapper
-        POSITION_INDEPENDENT_CODE ON
-    )
-    
-    # Create alias for consistent naming
-    add_library(secp256k1-wrapper::static ALIAS secp256k1-wrapper-static)
-endif()
+target_include_directories(secp256k1-wrapper-lib
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    PRIVATE
+        $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
+)
 
-# Create shared library target  
-if(BUILD_SHARED)
-    add_library(secp256k1-wrapper-shared SHARED)
+target_compile_features(secp256k1-wrapper-lib PUBLIC c_std_99)
+target_compile_options(secp256k1-wrapper-lib PRIVATE -Wall -Wextra -Wpedantic)
 
-    target_sources(secp256k1-wrapper-shared
-        PRIVATE
-        ${WRAPPER_SOURCES}
-        $<TARGET_PROPERTY:secp256k1_objs,INTERFACE_SOURCES> # Embed secp256k1 sources
-    )
+set_target_properties(secp256k1-wrapper-lib PROPERTIES
+    OUTPUT_NAME secp256k1-wrapper
+    POSITION_INDEPENDENT_CODE ON
+    VERSION ${PROJECT_VERSION}
+    SOVERSION ${PROJECT_VERSION_MAJOR}
+)
 
-    target_sources(secp256k1-wrapper-shared
-        PUBLIC
-        FILE_SET HEADERS 
-            BASE_DIRS include
-            FILES include/secp256k1_wrapper.h
-    )
-
-    # Link only platform-specific libraries
-    target_link_libraries(secp256k1-wrapper-shared 
-        PRIVATE ${PLATFORM_LIBS}
-    )
-
-    target_include_directories(secp256k1-wrapper-shared
-        PUBLIC
-            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-        PRIVATE
-            $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
-    )
-    
-    target_compile_features(secp256k1-wrapper-shared PUBLIC c_std_99)
-    if(MSVC)
-        target_compile_options(secp256k1-wrapper-shared PRIVATE /W4)
-    else()
-        target_compile_options(secp256k1-wrapper-shared PRIVATE -Wall -Wextra -Wpedantic)
-    endif()
-    
-    set_target_properties(secp256k1-wrapper-shared PROPERTIES
-        OUTPUT_NAME secp256k1-wrapper
-        VERSION ${PROJECT_VERSION}
-        SOVERSION ${PROJECT_VERSION_MAJOR}
-    )
-    
-    add_library(secp256k1-wrapper::shared ALIAS secp256k1-wrapper-shared)
-endif()
-
-# Set default library target
-if(BUILD_STATIC)
-    set(DEFAULT_LIBRARY_TARGET secp256k1-wrapper-static)
-elseif(BUILD_SHARED)
-    set(DEFAULT_LIBRARY_TARGET secp256k1-wrapper-shared)
-endif()
-
-# Create generic alias pointing to default target
-if(DEFAULT_LIBRARY_TARGET)
-    add_library(secp256k1-wrapper ALIAS ${DEFAULT_LIBRARY_TARGET})
+# Generic alias for downstream consumers, plus one type-specific alias
+# matching whichever type BUILD_SHARED_LIBS actually produced.
+add_library(secp256k1-wrapper ALIAS secp256k1-wrapper-lib)
+if(BUILD_SHARED_LIBS)
+    add_library(secp256k1-wrapper::shared ALIAS secp256k1-wrapper-lib)
+else()
+    add_library(secp256k1-wrapper::static ALIAS secp256k1-wrapper-lib)
 endif()
 
 # Build tests
-if(BUILD_TESTS AND DEFAULT_LIBRARY_TARGET)
+if(SECP256K1_WRAPPER_BUILD_TESTS)
 
     FetchContent_Declare(Unity
         GIT_REPOSITORY      https://github.com/ThrowTheSwitch/Unity.git
         GIT_TAG             v2.6.1
     )
     FetchContent_MakeAvailable(Unity)
-    
-    
+
+
     # Build test executable
     add_executable(test_wrapper tests/test_wrapper.c)
-    
+
     target_include_directories(test_wrapper PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         $<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>
     )
 
-    target_link_libraries(test_wrapper PRIVATE ${DEFAULT_LIBRARY_TARGET} unity ${PLATFORM_LIBS})
+    target_link_libraries(test_wrapper PRIVATE secp256k1-wrapper unity ${PLATFORM_LIBS})
 
     target_compile_features(test_wrapper PRIVATE c_std_99)
-    if(MSVC)
-        target_compile_options(test_wrapper PRIVATE /W4)
-    else()
-        target_compile_options(test_wrapper PRIVATE -Wall -Wextra -Wpedantic)
-    endif()
-    
+    target_compile_options(test_wrapper PRIVATE -Wall -Wextra -Wpedantic)
+
     # Enable testing
     enable_testing()
     add_test(NAME wrapper_tests COMMAND test_wrapper)
@@ -196,65 +142,51 @@ if(BUILD_TESTS AND DEFAULT_LIBRARY_TARGET)
 endif()
 
 # Build examples
-if(BUILD_EXAMPLES AND DEFAULT_LIBRARY_TARGET)
+if(SECP256K1_WRAPPER_BUILD_EXAMPLES)
     add_executable(demo examples/demo.c)
     target_include_directories(demo PRIVATE include)
-    target_link_libraries(demo PRIVATE ${DEFAULT_LIBRARY_TARGET} ${PLATFORM_LIBS})
+    target_link_libraries(demo PRIVATE secp256k1-wrapper ${PLATFORM_LIBS})
     
     # Set C standard and compiler options for demo target
     target_compile_features(demo PRIVATE c_std_99)
-    if(MSVC)
-        target_compile_options(demo PRIVATE /W4)
-    else()
-        target_compile_options(demo PRIVATE -Wall -Wextra -Wpedantic)
-    endif()
-    
+    target_compile_options(demo PRIVATE -Wall -Wextra -Wpedantic)
+
     message(STATUS "Example programs enabled")
 endif()
 
 # Installation rules
-if(BUILD_STATIC OR BUILD_SHARED)
-    # Collect targets to install
-    set(INSTALL_TARGETS)
-    if(BUILD_STATIC)
-        list(APPEND INSTALL_TARGETS secp256k1-wrapper-static)
-    endif()
-    if(BUILD_SHARED)
-        list(APPEND INSTALL_TARGETS secp256k1-wrapper-shared)
-    endif()
 
-    # Install libraries + public headers (from FILE_SET) in standard dirs
-    install(TARGETS ${INSTALL_TARGETS}
-        EXPORT secp256k1-wrapperTargets
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-        FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    )
+# Install library + public headers (from FILE_SET) in standard dirs
+install(TARGETS secp256k1-wrapper-lib
+    EXPORT secp256k1-wrapperTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
 
-    install(EXPORT secp256k1-wrapperTargets
-        NAMESPACE secp256k1-wrapper::
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/secp256k1-wrapper
-    )
+install(EXPORT secp256k1-wrapperTargets
+    NAMESPACE secp256k1-wrapper::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/secp256k1-wrapper
+)
 
-    write_basic_package_version_file(
-        "${CMAKE_CURRENT_BINARY_DIR}/secp256k1-wrapperConfigVersion.cmake"
-        VERSION ${PROJECT_VERSION}
-        COMPATIBILITY SameMajorVersion
-    )
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/secp256k1-wrapperConfigVersion.cmake"
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
 
-    configure_package_config_file(
-        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/secp256k1-wrapperConfig.cmake.in"
-        "${CMAKE_CURRENT_BINARY_DIR}/secp256k1-wrapperConfig.cmake"
-        INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/secp256k1-wrapper
-    )
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/secp256k1-wrapperConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/secp256k1-wrapperConfig.cmake"
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/secp256k1-wrapper
+)
 
-    install(FILES
-        "${CMAKE_CURRENT_BINARY_DIR}/secp256k1-wrapperConfig.cmake"
-        "${CMAKE_CURRENT_BINARY_DIR}/secp256k1-wrapperConfigVersion.cmake"
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/secp256k1-wrapper
-    )
-endif()
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/secp256k1-wrapperConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/secp256k1-wrapperConfigVersion.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/secp256k1-wrapper
+)
 
 # Summary
 message(STATUS "")
@@ -262,13 +194,13 @@ message(STATUS "=== Build Configuration Summary ===")
 message(STATUS "Project: ${PROJECT_NAME} v${PROJECT_VERSION}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "C Compiler: ${CMAKE_C_COMPILER}")
-message(STATUS "Build static library: ${BUILD_STATIC}")
-message(STATUS "Build shared library: ${BUILD_SHARED}")
-message(STATUS "Build tests: ${BUILD_TESTS}")
-message(STATUS "Build examples: ${BUILD_EXAMPLES}")
-if(DEFAULT_LIBRARY_TARGET)
-    message(STATUS "Default library target: ${DEFAULT_LIBRARY_TARGET}")
+if(BUILD_SHARED_LIBS)
+    message(STATUS "Library type: shared")
+else()
+    message(STATUS "Library type: static")
 endif()
+message(STATUS "Build tests: ${SECP256K1_WRAPPER_BUILD_TESTS}")
+message(STATUS "Build examples: ${SECP256K1_WRAPPER_BUILD_EXAMPLES}")
 message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "====================================")
 message(STATUS "")

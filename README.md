@@ -1,7 +1,7 @@
 # secp256k1-wrapper
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![CMake](https://img.shields.io/badge/CMake-3.15+-blue.svg)](https://cmake.org/)
+[![CMake](https://img.shields.io/badge/CMake-3.24+-blue.svg)](https://cmake.org/)
 [![C Standard](https://img.shields.io/badge/C-C99-blue.svg)](https://en.wikipedia.org/wiki/C99)
 [![Build](https://github.com/xXLegionBinFrogXx/secp256k1-wrapper/actions/workflows/build.yml/badge.svg)](https://github.com/xXLegionBinFrogXx/secp256k1-wrapper/actions/workflows/build.yml)
 
@@ -30,7 +30,7 @@ cmake --build .
 
 ```bash
 mkdir build && cd build
-cmake .. -DBUILD_TESTS=ON
+cmake .. -DSECP256K1_WRAPPER_BUILD_TESTS=ON
 cmake --build . --target test_wrapper   
 ctest                                  
 ```
@@ -39,7 +39,7 @@ ctest
 
 ```bash
 mkdir build && cd build
-cmake .. -DBUILD_EXAMPLES=ON
+cmake .. -DSECP256K1_WRAPPER_BUILD_EXAMPLES=ON
 cmake --build . --target demo
 
 ./demo                 # 2 key pairs, compressed pubkeys (default)
@@ -63,16 +63,22 @@ cmake --build . --target install
 
 ## Build Options
 
-```bash
-# Full build with all options (default)
-cmake .. -DCMAKE_BUILD_TYPE=Release \
-         -DBUILD_TESTS=ON \
-         -DBUILD_EXAMPLES=ON \
-         -DBUILD_SHARED=ON \
-         -DBUILD_STATIC=ON
+> **Note:** this is a breaking change to the configure interface. `BUILD_TESTS` / `BUILD_EXAMPLES` /
+> `BUILD_SHARED` / `BUILD_STATIC` no longer exist. Tests and examples are now
+> `SECP256K1_WRAPPER_BUILD_TESTS` / `SECP256K1_WRAPPER_BUILD_EXAMPLES`, and library type is chosen with
+> the standard `BUILD_SHARED_LIBS` — one library type is produced per configure directory.
 
-# Minimal build - static library only
-cmake .. -DBUILD_TESTS=OFF -DBUILD_EXAMPLES=OFF -DBUILD_SHARED=OFF
+```bash
+# Full build: tests, examples, static library (default)
+cmake .. -DCMAKE_BUILD_TYPE=Release \
+         -DSECP256K1_WRAPPER_BUILD_TESTS=ON \
+         -DSECP256K1_WRAPPER_BUILD_EXAMPLES=ON
+
+# Shared library instead of static
+cmake .. -DBUILD_SHARED_LIBS=ON
+
+# Minimal build - static library only, no tests/examples (default)
+cmake ..
 
 # Debug build with full logging
 cmake .. -DCMAKE_BUILD_TYPE=Debug
@@ -80,46 +86,39 @@ cmake .. -DCMAKE_BUILD_TYPE=Debug
 
 ## Library Outputs
 
-* **`libsecp256k1-wrapper.a`** - Static library
-* **`libsecp256k1-wrapper.so`** - Shared library (Linux)
-* **`libsecp256k1-wrapper.dylib`** - Dynamic library (macOS)
-* **`secp256k1-wrapper.dll`** - Dynamic library (Windows)
+* **`libsecp256k1-wrapper.a`** - Static library (default)
+* **`libsecp256k1-wrapper.so`** - Shared library (Linux, with `-DBUILD_SHARED_LIBS=ON`)
+* **`libsecp256k1-wrapper.dylib`** - Dynamic library (macOS, with `-DBUILD_SHARED_LIBS=ON`)
 
 ## Library Build Layout
 
-This project produces two flavors of the wrapper:
+One wrapper target is built per configure, chosen by `BUILD_SHARED_LIBS` (`OFF`/static by default).
+**Upstream secp256k1** object files are embedded directly into the target either way — there is no
+runtime or link-time dependency on a separate `libsecp256k1`.
 
-1. **Shared wrapper (dynamic library)**
+Link against the target with either name:
 
-   * **Target**: `secp256k1-wrapper-shared` → installed as `libsecp256k1-wrapper.so` / `.dylib` / `.dll`.
-   * **Upstream secp256k1** is linked statically into the wrapper.
-     * You only need to link against `secp256k1-wrapper::secp256k1-wrapper-shared`.
-     * At runtime, there is no dependency on an external `libsecp256k1.so`.
-   * **Typical use case**: Provide a single `.so`/`.dll` that applications can link against, while we control the exact `secp256k1` version bundled inside.
-
-2. **Static wrapper (static library)**
-
-   * **Target**: `secp256k1-wrapper-static` → installed as `libsecp256k1-wrapper.a`.
-   * **Upstream secp256k1** object files are embedded directly into this static archive.
-     * You only need to link against `secp256k1-wrapper::secp256k1-wrapper-static`.
-     * No external `secp256k1` library is required.
-   * **Typical use case**: Fully static builds (CLI tools, embedded, mobile).
+* `secp256k1-wrapper` — always resolves to whichever type was built.
+* `secp256k1-wrapper::static` or `secp256k1-wrapper::shared` — only the one matching the actual
+  build exists, so linking the wrong one is a configure-time error rather than a surprise.
 
 ## Platform Support
 
-| Platform    | Random Source           | Notes                         |
-| ----------- | ----------------------- | ----------------------------- |
-| **Windows** | `BCryptGenRandom`       | Uses Windows Crypto API       |
-| **Linux**   | `getrandom()` syscall   | Falls back to `/dev/urandom`  |
-| **macOS**   | `CCRandomGenerateBytes` | Falls back to `getentropy()`  |
+**Linux is the supported and tested platform.** macOS is expected to work. Windows is not supported —
+the build no longer links against `bcrypt`.
+
+| Platform    | Random Source            | Notes                        |
+| ----------- | ------------------------ | ----------------------------- |
+| **Linux**   | `getrandom()` syscall    | Falls back to `/dev/urandom`  |
+| **macOS**   | `CCRandomGenerateBytes`  | Falls back to `getentropy()`  |
 
 
 ## Dependencies
 
 * **CMake 3.24+** - Build system
-* **C99 compiler** - GCC, Clang, or MSVC
+* **C99 compiler** - GCC or Clang
 * **libsecp256k1 v0.8.0+** - Automatically fetched via CMake FetchContent
-* **Unity v2.6.1** - Test framework (auto-fetched when BUILD\_TESTS=ON)
+* **Unity v2.6.1** - Test framework (auto-fetched when SECP256K1\_WRAPPER\_BUILD\_TESTS=ON)
 
 All dependencies are automatically downloaded and built — no git submodules or manual dependency management required.
 
